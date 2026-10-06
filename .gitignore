@@ -1,0 +1,16 @@
+# Dependencias
+node_modules/
+
+# Resultados de build / instaladores
+dist/
+dist-native/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Sistema / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

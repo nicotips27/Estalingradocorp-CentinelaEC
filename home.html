@@ -1,0 +1,343 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Centinela BETA — Inicio</title>
+<style>
+  :root {
+    --accent:#0a84ff; --accent-hi:#4da3ff; --bg:#000000;
+    --panel:rgba(40,40,48,.55); --panel-solid:#1e1e24;
+    --line:rgba(255,255,255,.09); --muted:#9b9ba3; --danger:#ff453a;
+    --text:#f5f5f7; --text-dim:#c9c9cf;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html,body { height:100%; }
+  body {
+    color:var(--text); font-family:-apple-system, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+    min-height:100vh; user-select:none; display:flex; flex-direction:column;
+    overflow-x:hidden; overflow-y:auto; -webkit-font-smoothing:antialiased;
+    background:var(--bg); position:relative;
+  }
+
+  /* ---- Fondo dinámico (auroras animadas) ---- */
+  body::before, body::after {
+    content:""; position:fixed; inset:-20%;
+    pointer-events:none; z-index:0;
+  }
+  body::before {
+    background:
+      radial-gradient(46% 38% at 78% 22%, rgba(10,132,255,.20), transparent 62%),
+      radial-gradient(38% 34% at 18% 80%, rgba(88,86,214,.14), transparent 62%),
+      radial-gradient(34% 30% at 55% 45%, rgba(64,200,255,.10), transparent 60%);
+    filter:blur(30px);
+    animation:auroraA 26s ease-in-out infinite alternate;
+  }
+  body::after {
+    background:
+      radial-gradient(40% 32% at 30% 15%, rgba(0,229,255,.12), transparent 60%),
+      radial-gradient(44% 36% at 85% 75%, rgba(10,132,255,.14), transparent 60%);
+    filter:blur(40px);
+    animation:auroraB 32s ease-in-out infinite alternate;
+  }
+  @keyframes auroraA {
+    0%   { transform:translate(-3%, -2%) rotate(0deg) scale(1); }
+    50%  { transform:translate(3%, 2%) rotate(6deg) scale(1.06); }
+    100% { transform:translate(-2%, 3%) rotate(-5deg) scale(1.02); }
+  }
+  @keyframes auroraB {
+    0%   { transform:translate(2%, 3%) rotate(0deg) scale(1.04); }
+    50%  { transform:translate(-3%, -2%) rotate(-7deg) scale(1); }
+    100% { transform:translate(3%, -1%) rotate(5deg) scale(1.06); }
+  }
+
+  /* Capa que contiene el contenido (por encima del fondo) */
+  header, main, footer { position:relative; z-index:1; }
+
+  /* ---- Cabecera estilo menubar ---- */
+  header {
+    display:flex; align-items:center; gap:16px;
+    padding:18px 30px;
+    border-bottom:1px solid rgba(255,255,255,.06);
+    background:rgba(28,28,32,.5); backdrop-filter:blur(20px) saturate(180%);
+    -webkit-backdrop-filter:blur(20px) saturate(180%);
+  }
+  .logo {
+    width:40px; height:40px; border-radius:9px; object-fit:cover;
+    box-shadow:0 0 0 1px rgba(255,255,255,.12), 0 2px 10px rgba(0,0,0,.4);
+  }
+  .brand h1 {
+    font-size:17px; font-weight:700; letter-spacing:.5px; color:var(--text);
+  }
+  .brand .sub { font-size:11.5px; letter-spacing:.5px; color:var(--text-dim); margin-top:1px; }
+  .h-spacer { flex:1; }
+  .clock-row { display:flex; align-items:center; gap:20px; }
+  .clock { text-align:right; font-size:13px; color:var(--text-dim); line-height:1.4; }
+  .clock .time { font-size:17px; font-weight:600; color:var(--text); letter-spacing:.3px; }
+  .clock .net { display:inline-flex; align-items:center; gap:6px; font-size:11px; }
+
+  /* ---- Interruptor encriptación (toggle macOS) ---- */
+  .encrypt {
+    display:inline-flex; align-items:center; gap:9px; cursor:pointer;
+    font-size:12px; color:var(--text-dim); padding:6px 13px;
+    border:1px solid rgba(255,255,255,.12); border-radius:99px;
+    background:rgba(255,255,255,.06); transition:all .18s ease; user-select:none;
+  }
+  .encrypt:hover { background:rgba(255,255,255,.10); transform:scale(1.03); box-shadow:0 2px 10px rgba(0,0,0,.3); }
+  .encrypt .sw {
+    position:relative; width:36px; height:22px; border-radius:99px;
+    background:rgba(120,120,128,.30); transition:background .22s ease; flex:none;
+  }
+  .encrypt .sw::after {
+    content:""; position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%;
+    background:#fff; box-shadow:0 2px 5px rgba(0,0,0,.4); transition:left .22s ease;
+  }
+  .encrypt.on { color:var(--text); border-color:rgba(10,132,255,.5); background:rgba(10,132,255,.10); }
+  .encrypt.on .sw { background:var(--accent); }
+  .encrypt.on .sw::after { left:16px; }
+  .encrypt .led {
+    width:10px; height:10px; border-radius:50%; background:var(--danger);
+    box-shadow:0 0 8px rgba(255,69,58,.6); transition:all .25s ease; flex:none;
+  }
+  .encrypt.on .led { background:#30d158; box-shadow:0 0 10px rgba(48,209,88,.7); }
+
+  /* ---- Cuerpo ---- */
+  main { flex:1; display:flex; flex-direction:column; align-items:center; padding:36px 32px; }
+  .section-title {
+    font-size:14px; letter-spacing:.5px; color:var(--text-dim); font-weight:600;
+    margin-bottom:10px; text-align:center;
+  }
+  .section-title b { color:var(--text); font-weight:700; }
+
+  .tagline {
+    max-width:620px; text-align:center; color:var(--text-dim); font-size:13.5px;
+    line-height:1.65; margin:0 auto 30px;
+  }
+
+  .grid {
+    display:grid; grid-template-columns:repeat(auto-fit, minmax(220px,1fr));
+    gap:16px; width:100%; max-width:1020px;
+  }
+
+  .card {
+    position:relative; display:flex; flex-direction:column; align-items:center; text-align:center;
+    background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,0) 45%), var(--panel-solid);
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:16px; padding:24px 18px 18px;
+    cursor:pointer; overflow:hidden;
+    box-shadow:0 4px 20px rgba(0,0,0,.4);
+    transition:transform .22s cubic-bezier(.2,.9,.25,1.2), border-color .22s ease, box-shadow .22s ease;
+    animation:rise .55s cubic-bezier(.2,.8,.2,1) both;
+    will-change:transform;
+  }
+  .card::after { /* brillo superior animado al hover */
+    content:""; position:absolute; top:0; left:0; right:0; height:1px;
+    background:linear-gradient(90deg, transparent, rgba(10,132,255,.0), transparent);
+    opacity:0; transition:opacity .3s ease;
+  }
+  .card:nth-child(1){animation-delay:.04s} .card:nth-child(2){animation-delay:.09s}
+  .card:nth-child(3){animation-delay:.14s} .card:nth-child(4){animation-delay:.19s}
+  .card:nth-child(5){animation-delay:.24s} .card:nth-child(6){animation-delay:.29s}
+  .card:nth-child(7){animation-delay:.34s} .card:nth-child(8){animation-delay:.39s}
+  @keyframes rise { from{opacity:0; transform:translateY(12px) scale(.98)} to{opacity:1; transform:translateY(0) scale(1)} }
+  .card:hover {
+    transform:translateY(-4px) scale(1.02);
+    border-color:rgba(10,132,255,.5);
+    box-shadow:0 16px 46px rgba(0,0,0,.6), 0 0 24px rgba(10,132,255,.18);
+  }
+  .card:hover::after {
+    opacity:1;
+    background:linear-gradient(90deg, transparent, rgba(10,132,255,.8), transparent);
+    animation:shine 1.6s linear infinite;
+  }
+  @keyframes shine { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+  .card:hover .tile { transform:scale(1.12) translateY(-2px); border-color:rgba(10,132,255,.5);
+    box-shadow:0 0 26px rgba(10,132,255,.4); }
+  .card:hover .name { color:#fff; }
+  .card:active { transform:translateY(-1px) scale(.99); }
+  .card.active {
+    border-color:rgba(10,132,255,.6);
+    box-shadow:0 0 0 1px rgba(10,132,255,.4), 0 10px 34px rgba(0,0,0,.55);
+  }
+
+  /* cabecera de tarjeta: dot + atajo */
+  .card-top { position:absolute; top:12px; left:14px; right:14px;
+    display:flex; justify-content:space-between; align-items:center; }
+  .dot { width:8px; height:8px; border-radius:50%; background:rgba(120,120,128,.5); }
+  .dot.online { background:#30d158; box-shadow:0 0 8px rgba(48,209,88,.7); }
+  .dot.offline { background:var(--danger); box-shadow:0 0 8px rgba(255,69,58,.6); }
+  .shortcut {
+    font-size:10.5px; color:var(--text-dim); background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.1); border-radius:6px; padding:2px 7px;
+  }
+
+  .tile {
+    width:58px; height:58px; border-radius:14px; display:grid; place-items:center;
+    font-size:30px; margin:20px 0 14px;
+    background:linear-gradient(160deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.1); box-shadow:0 4px 14px rgba(0,0,0,.3); overflow:hidden;
+    transition:transform .22s cubic-bezier(.2,.9,.25,1.2), border-color .22s ease, box-shadow .22s ease;
+  }
+  .tile-img { width:100%; height:100%; object-fit:cover; display:block; transition:transform .22s ease; }
+  .card:hover .tile-img { transform:scale(1.15); }
+  .name { font-size:15px; font-weight:600; letter-spacing:.2px; transition:color .2s ease; }
+  .desc { font-size:12px; color:var(--muted); line-height:1.5; margin-top:6px; max-width:200px; }
+
+  .active-badge {
+    margin-top:12px; font-size:10px; letter-spacing:1.5px; font-weight:700; color:#fff;
+    background:var(--accent); padding:5px 15px; border-radius:99px;
+    box-shadow:0 3px 12px rgba(10,132,255,.4);
+  }
+  .open-btn {
+    margin-top:12px; padding:8px 28px; border-radius:99px; font-weight:600; font-size:12px;
+    color:var(--text); border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.06);
+    transition:all .2s ease; position:relative; overflow:hidden;
+  }
+  .open-btn::after { /* shimmer */
+    content:""; position:absolute; top:0; left:-60%; width:40%; height:100%;
+    background:linear-gradient(100deg, transparent, rgba(255,255,255,.35), transparent);
+    transform:skewX(-20deg); opacity:0;
+  }
+  .card:hover .open-btn { background:var(--accent); color:#fff; border-color:transparent;
+    box-shadow:0 4px 16px rgba(10,132,255,.5); transform:translateY(-1px); }
+  .card:hover .open-btn::after { opacity:1; animation:btnShine 1.1s ease; }
+  @keyframes btnShine { 0%{left:-60%} 60%,100%{left:120%} }
+  .card.active .active-badge { display:block; }
+  .card.active .open-btn { display:none; }
+
+  /* ---- Barra inferior ---- */
+  footer {
+    display:flex; align-items:center; gap:18px; padding:15px 30px;
+    border-top:1px solid rgba(255,255,255,.06);
+    background:rgba(28,28,32,.5); backdrop-filter:blur(20px);
+    -webkit-backdrop-filter:blur(20px);
+    font-size:11.5px; color:var(--muted); flex-wrap:wrap;
+  }
+  footer .sys { color:var(--text-dim); }
+  .spacer { flex:1; }
+  .net-status { display:inline-flex; align-items:center; gap:8px; }
+</style>
+</head>
+<body>
+  <header>
+    <img class="logo" src="logo.jpg" alt="Centinela BETA">
+    <div class="brand">
+      <h1>Centinela BETA</h1>
+      <div class="sub">Servicio Estalingrado Corp · Intra-net</div>
+    </div>
+    <div class="h-spacer"></div>
+    <div class="clock-row">
+      <div class="encrypt" id="encrypt" title="Encriptar la Intra-Net">
+        <span class="led"></span>
+        <span>Encriptar la Intra-Net</span>
+        <span class="sw"></span>
+      </div>
+      <div class="clock">
+        <div class="time" id="clock">--:--:--</div>
+        <div class="net"><span class="net-dot" style="width:7px;height:7px;border-radius:50%;background:#455"></span>
+        <span id="netlabel">SYS.INIT SECURE_LINK</span></div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="section-title">Plataformas · <b>Selecciona un módulo</b></div>
+    <p class="tagline">Centro de inteligencia global. Monitoreá el mundo, analizá información y seguí acontecimientos en tiempo real desde una única plataforma.</p>
+    <div class="grid" id="grid"></div>
+  </main>
+
+  <footer>
+    <span class="sys" id="sysline">&gt; iniciado</span>
+    <span class="spacer"></span>
+    <span class="net-status" id="netstatus"><span class="dot" id="netdot"></span> <span id="nettext">comprobando conexión…</span></span>
+  </footer>
+
+<script>
+const VERSION = 'v1.0.0';
+
+const SITES = [
+  { name:'EC Terminal Data',   desc:'Terminal de mercados, divisas, materias primas y más.',       img:'logo.jpg', probe:'https://nicotips27.github.io/Estalingrado-corp-Terminal-data/' },
+  { name:'Osiris AI',           desc:'OsirisAI - Inteligencia y análisis en tiempo real.',            img:'img-osiris.png', probe:'https://osirisai.live/' },
+  { name:'OpenGrid Works',      desc:'Mapa global de centrales eléctricas en tiempo real.',  img:'img-opengrid.webp', probe:'https://opengridworks.com/power-plants' },
+  { name:'Provenance',          desc:'Mapa satelital de seguimiento y procedencia.',            img:'img-warwatch.png', probe:'https://provenance-online.com/' },
+  { name:'EC NEWS',             desc:'Directorio global de prensa y agencias EC.',              img:'img-ecnews.jpg', probe:'https://nicotips27.github.io/ECnews/' },
+  { name:'Radio Garden',       desc:'Explorá estaciones de radio de todo el mundo en un globo.',  img:'img-radiogarden.png', probe:'https://radio.garden/' },
+  { name:'EC Send Pro',        desc:'Plataforma de intercambio y envíos Estalingrado Corp.',      img:'img-ecsendpro.png', probe:'https://estalingradocorp.github.io/ECsendpro/' },
+  { name:'Famelack',           desc:'Plataforma de contenido y comunidad Famelack.',              img:'img-famelack.png', probe:'https://famelack.com/' }
+];
+
+const grid = document.getElementById('grid');
+let activeIndex = -1;
+
+window.centinela.getCurrent().then(i => { activeIndex = i; render(); });
+render();
+
+function render() {
+  grid.innerHTML = '';
+  SITES.forEach((site, i) => {
+    const card = document.createElement('div');
+    card.className = 'card' + (i === activeIndex ? ' active' : '');
+    card.innerHTML =
+      '<div class="card-top">' +
+        '<span class="dot checking"></span>' +
+        '<span class="shortcut">Ctrl+' + (i+1) + '</span>' +
+      '</div>' +
+      '<div class="tile">' + (site.img
+        ? '<img class="tile-img" src="' + site.img + '" alt="' + site.name + '">'
+        : site.icon) + '</div>' +
+      '<div class="name">' + site.name + '</div>' +
+      '<div class="desc">' + site.desc + '</div>' +
+      (i === activeIndex
+        ? '<div class="active-badge">ACTIVA</div>'
+        : '<div class="open-btn">ABRIR</div>');
+    card.addEventListener('click', () => window.centinela.selectSite(i));
+    grid.appendChild(card);
+    probeSite(i);
+  });
+}
+
+async function probeSite(i) {
+  const dot = grid.children[i].querySelector('.dot');
+  let ok = false;
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 6000);
+    await fetch(SITES[i].probe, { method:'GET', mode:'no-cors', signal:ctrl.signal });
+    clearTimeout(t);
+    ok = true;
+  } catch (e) { ok = false; }
+  dot.className = 'dot ' + (ok ? 'online' : 'offline');
+  updateNetStatus();
+}
+
+function updateNetStatus() {
+  const dots = [...grid.querySelectorAll('.dot')];
+  const total = dots.length;
+  const online = dots.filter(d => d.classList.contains('online')).length;
+  const dotEl = document.getElementById('netdot');
+  const text = document.getElementById('nettext');
+  if (total === 0) return;
+  if (online === total) { dotEl.className = 'dot online'; text.textContent = 'INTRA-NET ONLINE · ' + total + '/' + total; }
+  else if (online === 0) { dotEl.className = 'dot offline'; text.textContent = 'SIN CONEXIÓN · 0/' + total; }
+  else { dotEl.className = 'dot online'; text.style.color = '#4da3ff'; text.textContent = 'INTRA-NET PARCIAL · ' + online + '/' + total; }
+}
+
+function tick() {
+  const d = new Date();
+  const p2 = n => String(n).padStart(2,'0');
+  document.getElementById('clock').textContent =
+    p2(d.getHours()) + ':' + p2(d.getMinutes()) + ':' + p2(d.getSeconds());
+  document.getElementById('sysline').textContent =
+    '> ' + d.toLocaleDateString('es-ES') + '  SYS.INIT OK  ' + VERSION;
+}
+tick(); setInterval(tick, 1000);
+
+const encryptEl = document.getElementById('encrypt');
+const netLabel = document.getElementById('netlabel');
+const led = encryptEl.querySelector('.led');
+encryptEl.addEventListener('click', () => {
+  const on = encryptEl.classList.toggle('on');
+  netLabel.textContent = on ? 'SYS.ENCRYPTION ACTIVE' : 'SYS.INIT SECURE_LINK';
+});
+</script>
+</body>
+</html>
