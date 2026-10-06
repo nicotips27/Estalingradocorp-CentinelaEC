@@ -75,7 +75,7 @@ function showAbout() {
     type: 'info',
     title: 'Centinela BETA',
     message: 'Centinela BETA v1.0.0 · Servicio Estalingrado Corp',
-    detail: 'Centro de inteligencia global. Monitoreá el mundo, analizá información y seguí acontecimientos en tiempo real desde una única plataforma.\n\nAtajos: Ctrl+1 (Palantir) | Ctrl+2 (Osiris AI) | Ctrl+3 (War Watch) | Ctrl+4 (World Monitor) | Ctrl+5 (EC News) | Ctrl+6 (EC Terminal Data) | Ctrl+7 (Radio Garden) | Ctrl+8 (EC Send Pro) | Ctrl+9 (Famelack)\n\nWeb: estalingradocorp.qzz.io',
+    detail: 'Centro de inteligencia global. Monitoreá el mundo, analizá información y seguí acontecimientos en tiempo real desde una única plataforma.\n\nAtajos: Ctrl+1 (EC Terminal Data) | Ctrl+2 (Osiris AI) | Ctrl+3 (OpenGrid Works) | Ctrl+4 (Provenance) | Ctrl+5 (EC News) | Ctrl+6 (EC Terminal Data) | Ctrl+7 (Radio Garden) | Ctrl+8 (EC Send Pro) | Ctrl+9 (Famelack)\n\nWeb: estalingradocorp.qzz.io',
     buttons: ['Cerrar', 'Visitar Estalingrado Corp'],
     cancelId: 0,
     defaultId: 0
