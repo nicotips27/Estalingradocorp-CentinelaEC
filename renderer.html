@@ -1,13 +1,38 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Centinela BETA</title>
+<meta charset="UTF-8">
+<title>Centinela BETA</title>
+<style>
+  :root {
+    --brand-blue: #0052cc;
+    --brand-black: #0d0d0d;
+    --text-primary: #ffffff;
+    --text-secondary: #a0a0a0;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html,body { height:100%; }
+  body {
+    background: var(--brand-black);
+    display:flex; align-items:center; justify-content:center;
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    color: var(--text-primary);
+    user-select:none;
+  }
+  .wrap { text-align:center; padding:32px; }
+  .logo { width:80px; height:80px; border-radius:12px; object-fit:cover; margin-bottom:16px; }
+  .title { font-size:22px; font-weight:600; letter-spacing:0.5px; margin-bottom:4px; }
+  .sub { font-size:13px; color: var(--text-secondary); margin-bottom:24px; }
+  .loader { width:32px; height:32px; margin:0 auto; border:2px solid rgba(0,82,204,0.2); border-top-color: var(--brand-blue); border-radius:50%; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+</style>
 </head>
-<body style="background:#111;color:#eee;font-family:Segoe UI,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
-  <div style="text-align:center;">
-    <p>Centinela BETA</p>
-    <p style="opacity:0.6;">Cargando...</p>
+<body>
+  <div class="wrap">
+    <img class="logo" src="logo.jpg" alt="Centinela BETA">
+    <div class="title">Centinela BETA</div>
+    <div class="sub">Cargando módulo…</div>
+    <div class="loader" aria-label="Cargando"></div>
   </div>
 </body>
 </html>

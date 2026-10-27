@@ -1,0 +1,146 @@
+================================================================================
+EXPORTACIÓN DE CHAT - CENTINELA BETA
+Fecha: 26/10/2026
+Repositorio: https://github.com/nicotips27/Estalingradocorp-CentinelaEC
+================================================================================
+
+RESUMEN DE LA SESIÓN
+--------------------
+Se sincronizó el repositorio local con la versión instalada, se actualizó el icono
+de la app y se agregó la plataforma "Drive & Listen" (Ctrl+9). Se regeneró el
+instalador NSIS y se actualizó la documentación.
+
+--------------------------------------------------------------------------------
+1. CLONE DEL REPOSITORIO
+--------------------------------------------------------------------------------
+> git clone https://github.com/nicotips27/Estalingradocorp-CentinelaEC
+
+Repositorio clonado en: C:\Users\nicot\OneDrive\Desktop\Estalingrado corp\proyectos\centinela\Estalingradocorp-CentinelaEC
+
+Estado: rama main, actualizada con origin/main.
+
+--------------------------------------------------------------------------------
+2. COMPARACIÓN REPO vs APP INSTALADA
+--------------------------------------------------------------------------------
+App instalada en: C:\Users\nicot\AppData\Local\Programs\Centinela BETA
+
+Diferencias clave encontradas (app instalada es superior):
+- main.js: WebContentsView (aislamiento por vista), User-Agent Chrome 124,
+  fullscreen: true, splash 1800ms, manejo avanzado de navegación
+- preload.js: Inyección de estilos base, sin conflictRadar
+- home.html: Canvas de estrellas animado, toggle "Encriptar la Intra-Net"
+  funcional (LEDs + switch), monitoreo HEAD por sitio, badges ACTIVA/ABRIR
+- splash.html: Spinner circular (más limpio)
+- renderer.html: Spinner + logo (más pulido)
+
+Conclusión: repo NO estaba actualizado.
+
+--------------------------------------------------------------------------------
+3. SINCRONIZACIÓN DEL REPO CON LA APP INSTALADA
+--------------------------------------------------------------------------------
+Archivos actualizados (copia de app.asar instalada → repo):
+- main.js (292 líneas, arquitectura WebContentsView completa)
+- preload.js (20 líneas, estilos base)
+- home.html (400 líneas, estrellas, encriptación, monitoreo HEAD)
+- splash.html (61 líneas, spinner)
+- renderer.html (38 líneas, spinner)
+
+Verificación SHA256:
+- repo == instalada: OK (6/6 archivos)
+- repo == build (app.asar): OK (6/6 archivos)
+
+--------------------------------------------------------------------------------
+4. REGENERACIÓN DEL INSTALADOR
+--------------------------------------------------------------------------------
+> npm install          (328 paquetes, ~23s)
+> npm run dist         (electron-builder --win)
+
+Generado: dist\Centinela BETA Setup 1.0.0.exe (79.2 MB)
+
+--------------------------------------------------------------------------------
+5. ACTUALIZACIÓN DE DOCUMENTACIÓN
+--------------------------------------------------------------------------------
+- README.md: plataformas actualizadas (8 módulos), features detalladas,
+  estructura de archivos, troubleshooting, changelog
+- bitacora.txt: plataformas, features, verificaciones, fecha 25/10/2026
+
+--------------------------------------------------------------------------------
+6. ACTUALIZACIÓN DEL ICONO DE LA APP
+--------------------------------------------------------------------------------
+Icono maestro: Imagenes/Iconos/icono/icono.png (1254×1254, "C" + brújula azul)
+
+Pipeline en make-icon.js (reescrito):
+1. PowerShell: recorta/redimensiona maestro → icon.png (256×256, PNG 32bpp)
+2. app-builder (ya en node_modules): icon.png → icon.ico (256×256, payload PNG)
+
+Verificación GDI+:
+- icon.ico carga como 256×256 (Icon(path) → 256x256)
+- Coincide con formato del original (entrada única PNG)
+
+Build verificado:
+- Centinela BETA.exe e instalador NSIS muestran el nuevo icono ✓
+
+--------------------------------------------------------------------------------
+7. AGREGADO DE PLATAFORMA "DRIVE & LISTEN"
+--------------------------------------------------------------------------------
+URL: https://driveandlisten.app/
+Descripción: "Recorridos virtuales por 100+ ciudades con su radio local"
+Atajo: Ctrl+9 (CmdOrCtrl+9)
+
+Cambios:
+- main.js: SITES + entry, shortcut CmdOrCtrl+9, texto "Ctrl+1–9"
+- home.html: SITES + entry (img: img-driveandlisten.png, probe HEAD)
+- home.html: grid ajustado a 3 columnas (minmax 280px, max-width 920px) → 3×3
+- package.json: build.files + img-driveandlisten.png
+- img-driveandlisten.png: descargado de driveandlisten.app/icon.png,
+  recortado 1024×1024 → 256×256 (25600 bytes, 32bpp)
+
+Verificación visual: captura de pantalla de la home → grid 3×3 balanceado ✓
+Build regenerado: dist\Centinela BETA Setup 1.0.0.exe (79.0 MB, 26/10/2026 19:21)
+
+--------------------------------------------------------------------------------
+ESTADO FINAL DEL REPOSITORIO
+--------------------------------------------------------------------------------
+Archivos modificados (12):
+  D Imagenes/Iconos/icono/Ícono futurista de globo cibernético.png (borrado)
+  M README.md
+  M bitacora.txt
+  M home.html
+  M icon.ico
+  M icon.png
+  M main.js
+  M make-icon.js
+  M package.json
+  M preload.js
+  M renderer.html
+  M splash.html
+
+Archivos nuevos sin trackear (2):
+  ?? Imagenes/Iconos/icono/icono.png
+  ?? img-driveandlisten.png
+
+Instalador final:
+  dist\Centinela BETA Setup 1.0.0.exe (79.0 MB)
+
+Verificaciones pasadas:
+- node --check main.js, preload.js, adblock.js → OK
+- app.asar (build) SHA256 == repo → OK
+- Smoke test: app abre "Centinela BETA — Inicio" sin errores ✓
+- Grid 3×3 verificado visualmente en captura ✓
+- Iconos exe/instalador verificados ✓
+
+--------------------------------------------------------------------------------
+PRÓXIMOS PASOS SUGERIDOS
+--------------------------------------------------------------------------------
+1. Commit y push de los cambios:
+   git add .
+   git commit -m "sync: repo ≡ app instalada; icono nuevo; +Drive & Listen (Ctrl+9)"
+   git push
+
+2. (Opcional) Reemplazar logo.jpg si se desea unificar branding.
+
+3. Tarea pendiente histórica: integración de agente IA local (Ollama/LM Studio/etc.)
+
+================================================================================
+FIN DE EXPORTACIÓN
+================================================================================

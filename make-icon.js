@@ -1,95 +1,77 @@
-const zlib = require('zlib');
 const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { execFileSync } = require('child_process');
 
-const S = 256;
-function crc32(buf) {
-  let c, table = [];
-  for (let n = 0; n < 256; n++) {
-    c = n;
-    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-    table[n] = c >>> 0;
+const SRC = path.join('Imagenes', 'Iconos', 'icono', 'icono.png');
+const PNG_OUT = 'icon.png';
+const ICO_OUT = 'icon.ico';
+const SIZE = 256;
+
+const APP_BUILDER = path.join(
+  'node_modules', 'app-builder-bin', 'win', 'x64', 'app-builder.exe'
+);
+
+function ps(script) {
+  execFileSync('powershell', ['-NoProfile', '-NonInteractive', '-Command', script], {
+    stdio: 'inherit'
+  });
+}
+
+function main() {
+  if (!fs.existsSync(SRC)) {
+    throw new Error(`No se encuentra el icono fuente: ${SRC}`);
   }
-  let crc = 0xffffffff;
-  for (const b of buf) crc = table[(crc ^ b) & 0xff] ^ (crc >>> 8);
-  return (crc ^ 0xffffffff) >>> 0;
-}
+  if (!fs.existsSync(APP_BUILDER)) {
+    throw new Error(
+      `No se encuentra ${APP_BUILDER}. Ejecuta "npm install" antes de regenerar el icono.`
+    );
+  }
 
-function chunk(type, data) {
-  const len = Buffer.alloc(4);
-  len.writeUInt32BE(data.length);
-  const typeBuf = Buffer.from(type, 'ascii');
-  const crcBuf = Buffer.alloc(4);
-  crcBuf.writeUInt32BE(crc32(Buffer.concat([typeBuf, data])));
-  return Buffer.concat([len, typeBuf, data, crcBuf]);
-}
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'centinela-icon-'));
+  const src = path.resolve(SRC);
+  const pngOut = path.resolve(PNG_OUT);
 
-// Colors
-const bg = [10, 12, 20];           // dark navy
-const ring = [0, 220, 130];        // green radar
-const sweep = [0, 255, 170];
-const dot = [255, 60, 60];         // red target
+  const psScript = `
+$ErrorActionPreference = 'Stop'
+Add-Type -AssemblyName System.Drawing
+$src = [System.Drawing.Bitmap]::FromFile('${src}')
+$bmp = [System.Drawing.Bitmap]::new(${SIZE}, ${SIZE}, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+$bmp.SetResolution(96, 96)
+$g = [System.Drawing.Graphics]::FromImage($bmp)
+$g.CompositingQuality = [System.Drawing.Drawing2D.CompositingQuality]::HighQuality
+$g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+$g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
+$g.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+$g.Clear([System.Drawing.Color]::Black)
+$g.DrawImage($src, 0, 0, ${SIZE}, ${SIZE})
+$g.Dispose()
+$bmp.Save('${pngOut}', [System.Drawing.Imaging.ImageFormat]::Png)
+$bmp.Dispose()
+$src.Dispose()
+`;
 
-const px = Buffer.alloc(S * S * 4); // RGBA rows top->bottom
+  try {
+    ps(psScript);
 
-function setPx(x, y, c) {
-  if (x < 0 || y < 0 || x >= S || y >= S) return;
-  const i = (y * S + x) * 4;
-  px[i] = c[0]; px[i+1] = c[1]; px[i+2] = c[2]; px[i+3] = 255;
-}
+    execFileSync(APP_BUILDER, [
+      'icon',
+      '--format', 'ico',
+      '--input', pngOut,
+      '--out', tmp
+    ], { stdio: 'inherit' });
 
-const cx = S / 2, cy = S / 2;
-for (let y = 0; y < S; y++) {
-  for (let x = 0; x < S; x++) {
-    const dx = x - cx, dy = y - cy;
-    const r = Math.sqrt(dx*dx + dy*dy);
-    let c = bg;
-    const ang = Math.atan2(dy, dx);
-    // rings at radii
-    for (const R of [52, 92, 122]) {
-      const d = Math.abs(r - R);
-      if (d < 2) c = mix(c, ring, 1 - d/2);
+    const generated = path.join(tmp, 'icon.ico');
+    if (!fs.existsSync(generated)) {
+      throw new Error('app-builder no generó el archivo icon.ico');
     }
-    // cross lines
-    if (Math.abs(dx) < 1.5 || Math.abs(dy) < 1.5) c = mix(c, ring, 0.35);
-    // sweep arm from center (radar beam, lower half)
-    if (r > 0 && r < 124) {
-      const a = Math.atan2(dy, dx);
-      const targetA = Math.PI / 2; // pointing down
-      let diff = Math.abs(a - targetA);
-      if (diff > Math.PI) diff = 2 * Math.PI - diff;
-      if (diff < 0.45) c = mix(c, sweep, (0.45 - diff) * 1.2 * (1 - r/124));
-    }
-    // target dot
-    const tdx = 70, tdy = 55;
-    const tr = Math.sqrt((x - (cx+tdx)) ** 2 + (y - (cy+tdy)) ** 2);
-    if (tr < 7) c = mix(c, dot, 1 - tr/7);
-    setPx(x, y, c);
+    fs.copyFileSync(generated, path.resolve(ICO_OUT));
+
+    console.log(`${PNG_OUT}: ${fs.statSync(PNG_OUT).size} bytes (${SIZE}x${SIZE})`);
+    console.log(`${ICO_OUT}: ${fs.statSync(ICO_OUT).size} bytes (${SIZE}x${SIZE})`);
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
   }
 }
 
-function mix(a, b, t) {
-  return [Math.round(a[0]+(b[0]-a[0])*t), Math.round(a[1]+(b[1]-a[1])*t), Math.round(a[2]+(b[2]-a[2])*t)];
-}
-
-// build raw scanlines with filter byte 0
-const raw = Buffer.alloc(S * (S * 4 + 1));
-for (let y = 0; y < S; y++) {
-  raw[y * (S*4+1)] = 0;
-  px.copy(raw, y * (S*4+1) + 1, y * S * 4, (y+1) * S * 4);
-}
-
-const idat = zlib.deflateSync(raw);
-const ihdr = Buffer.alloc(13);
-ihdr.writeUInt32BE(S, 0);
-ihdr.writeUInt32BE(S, 4);
-ihdr[8] = 8;  // bit depth
-ihdr[9] = 6;  // color type RGBA
-const png = Buffer.concat([
-  Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a]),
-  chunk('IHDR', ihdr),
-  chunk('IDAT', idat),
-  chunk('IEND', Buffer.alloc(0))
-]);
-
-fs.writeFileSync('icon.png', png);
-console.log('icon.png written', png.length, 'bytes');
+main();

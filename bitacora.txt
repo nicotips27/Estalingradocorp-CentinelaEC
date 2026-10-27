@@ -1,57 +1,128 @@
-BITÁCORA DE PROYECTO - CENTINELA BETA
+BITACORA DE PROYECTO - CENTINELA BETA
 
-FECHA DE ANÁLISIS: 05/10/2026
-UBICACIÓN FINAL: C:\Users\nicot\OneDrive\Documentos\centinela
+FECHA DE ANALISIS: 26/10/2026
+REPOSITORIO: https://github.com/nicotips27/Estalingradocorp-CentinelaEC
+UBICACION FINAL: C:\Users\nicot\OneDrive\Desktop\Estalingrado corp\proyectos\centinela\Estalingradocorp-CentinelaEC
 
 RESUMEN DEL PROYECTO
 ---------------------
 Nombre: Centinela BETA
-Versión: 1.0.0
-Tipo: Aplicación de escritorio para Windows (Electron)
+Version: 1.0.0
+Tipo: Aplicacion de escritorio para Windows (Electron)
 Autor: Centinela BETA
 Licencia: MIT
 
-DESCRIPCIÓN
+DESCRIPCION
 -----------
-Centinela BETA es un wrapper de escritorio construido con Electron que permite acceder rápidamente a nueve plataformas de monitoreo e inteligencia desde ventanas dedicadas, sin necesidad de un navegador web. Incluye pantalla de carga, lanzador con tarjetas, bloqueo de anuncios y menú nativo de Windows.
+Centinela BETA es un wrapper de escritorio construido con Electron que permite acceder rapidamente a diez plataformas de monitoreo e inteligencia desde vistas dedicadas, sin necesidad de un navegador web. Incluye pantalla de carga, lanzador con tarjetas, fondo de estrellas animado, bloqueo de anuncios y menu nativo de Windows.
 
-CARACTERÍSTICAS PRINCIPALES
+CARACTERISTICAS PRINCIPALES
 ---------------------------
-- Interfaz con temática azul y negro
+- Interfaz con tematica azul y negro
 - Pantalla de inicio (home.html) con tarjetas de plataformas
 - Pantalla de carga/splash (splash.html)
-- Menú nativo: Centinela, Ver, Ayuda
-- Atajos: Ctrl+1 - Ctrl+8, Ctrl+H (Inicio), Ctrl+R, F11, F12, F1
+- Menu nativo: Centinela, Ver, Ayuda
+- Atajos: Ctrl+1 - Ctrl+9, Ctrl+H (Inicio), Ctrl+R, F11, F12, F1
 - Bloqueo de anuncios integrado (@cliqz/adblocker-electron)
-- Seguridad: contextIsolation: true, nodeIntegration: false
+- Seguridad: contextIsolation true, nodeIntegration false, sandbox true en vistas de sitio
 - Modal Sobre el programa en Ayuda
-- Indicador Encriptar la Intra-Net con LED
-- Reenvío de enlaces externos al navegador del sistema
+- Indicador Encriptar la Intra-Net con LED y switch funcional
+- Fondo de estrellas animado via canvas 2D
+- Monitoreo de conectividad por plataforma via peticiones HEAD
+- Pantalla completa por defecto al iniciar
+- User-Agent de Chrome 124 para evitar bloqueos anti-bot (Cloudflare)
+- Arquitectura WebContentsView: vistas aisladas por plataforma
+- Reenvio de enlaces externos al navegador del sistema
+- Icono de la app: "C" con aguja de brujula azul sobre fondo oscuro con borde azul
+  (fuente: Imagenes\Iconos\icono\icono.png, generado por make-icon.js)
 
 PLATAFORMAS INCLUIDAS
 ---------------------
-Ctrl+1 - Palantir Gotham (https://www.palantir.com/platforms/gotham/)
-Ctrl+3 - War Watch (https://www.war-watch.com/)
-Ctrl+4 - World Monitor (https://www.worldmonitor.ai/)
-Ctrl+5 - EC News (https://nicotips27.github.io/ECnews/)
-Ctrl+2 - Osiris AI (https://osirisai.live/)
-Ctrl+6 - EC Terminal Data (https://nicotips27.github.io/Estalingrado-corp-Terminal-data/)
+Ctrl+1 - EC Terminal Data (https://nicotips27.github.io/Estalingrado-corp-Terminal-data/)
+Ctrl+2 - EC NEWS (https://nicotips27.github.io/ECnews/)
+Ctrl+3 - EC Send Pro (https://estalingradocorp.github.io/ECsendpro/)
+Ctrl+4 - Osiris AI (https://osirisai.live/)
+Ctrl+5 - OpenGrid Works (https://opengridworks.com/power-plants)
+Ctrl+6 - Provenance (https://provenance-online.com/app?lat=5.6961&lon=-52.32892&z=1.74&layers=&base=satellite)
 Ctrl+7 - Radio Garden (https://radio.garden/)
-Ctrl+8 - EC Send Pro (https://estalingradocorp.github.io/ECsendpro/)
+Ctrl+8 - Famelack (https://famelack.com/)
+Ctrl+9 - Drive & Listen (https://driveandlisten.app/)
 
-TECNOLOGÍAS UTILIZADAS
----------------------
+NOTA: Se retiraron Palantir Gotham, War Watch, Conflict Radar 360 y World Monitor. Entraron Osiris AI, OpenGrid Works y Provenance.
+NOTA: El 27/10/2026 tambien se retiro Centinela Globe (WorldWideView) de la app: quedan 9 plataformas (Ctrl+1â€“9).
+
+CENTINELA GLOBE (MODULO LOCAL - RETIRADO DE LA APP EL 27/10/2026)
+------------------------------------------------------------------
+Estado: la app ya no lo incluye (sin tarjeta, sin atajo, sin menu, sin loader ni logica Docker).
+El proyecto ..\worldwideview y su instancia Docker quedan intactos en disco, fuera de Centinela.
+Origen: https://github.com/silvertakana/worldwideview (licencia Elastic 2.0)
+Codigo local: ..\worldwideview (clone shallow con branding Estalingrado Corp)
+Instancia: http://localhost:3000 (Docker Compose: docker-compose.centinela.yml)
+Control: ..\worldwideview\start-centinela-globe.ps1 (prepare / build / up / status / logs / down)
+Stack: Next.js 16 + CesiumJS + PostgreSQL 15 + Redis + motor de datos propio (puerto 5000)
+
+Rebranding aplicado sobre el upstream:
+- Logo propio: public/logo/logo-icon.svg + favicon.svg (globo 3D con_nodes azul/verde)
+- Header: "CENTINELA GLOBE" + subtitulo "Estalingrado Corp - Inteligencia Geoespacial"
+- Metadata de la app: "Centinela Globe | Inteligencia Geoespacial"
+- Boot overlay, login y setup en espaÃ±ol con la marca Centinela
+- Paleta de acentos del tema por defecto: azul Estalingrado (#0066ff / #0052cc)
+- Link del logo del header hacia https://estalingradocorp.qzz.io
+- Atribucion original conservada (pie legal -> worldwideview.dev/legal)
+
+REQUISITOS DEL ENTORNO PARA LEVANTARLO
+---------------------------------------
+- Docker Desktop instalado (perfil de usuario) pero sin motor Linux activo.
+- Se habilitaron las funciones de Windows "Microsoft-Windows-Subsystem-Linux" y
+  "VirtualMachinePlatform" (requiere reinicio del equipo para aplicar).
+- Tras el reinicio: "wsl --update" y Docker Desktop queda operativo con WSL2.
+- Estado al 26/10/2026 20:20: funciones en Enabled pero el equipo aun NO se reinicio
+  (corte de luz a las 20:15 sin reinicio; LastBootUpTime sigue en 24/10/2026), por eso el
+  motor Linux de Docker sigue sin arrancar. Todo el trabajo quedo intacto en disco.
+- Disquete libre en C: 186 GB (suficiente para el build de la imagen y las BD).
+
+TECNOLOGIAS UTILIZADAS
+-----------------------
 - Electron ^31.0.0
 - electron-builder ^24.13.3
 - @cliqz/adblocker-electron ^1.34.0
 
 INSTALADOR GENERADO
 -------------------
-Ruta: C:\Users\nicot\OneDrive\Documentos\centinela\dist\Centinela BETA Setup 1.0.0.exe
-Tamaño: ~75.25 MB
-Fecha generación: 05/10/2026 15:57:10
+Ruta: dist\Centinela BETA Setup 1.0.0.exe
+Tamano: ~75.4 MB
+Fecha generacion: 26/10/2026 20:00
+Comando: npm run dist
+
+VERIFICACIONES
+--------------
+- Sintaxis JS validada con node --check (main.js, preload.js, adblock.js)
+- app.asar del build cotejado por hash SHA256 contra el codigo fuente: identico
+- app.asar de la version instalada cotejado por hash SHA256 contra el repo: identico
+- Smoke test de arranque: win-unpacked\Centinela BETA.exe abre la ventana "Centinela BETA - Inicio" sin errores
+- Icono: icon.png (256x256) e icon.ico (256x256, payload PNG) cargan correctamente en GDI+
+- Icono verificado visualmente en los ejecutables generados (app .exe y instalador NSIS)
+- Nueva plataforma Drive & Listen (Ctrl+9) integrada y verificada en home.html y main.js
+- Grid de inicio 3x3 verificado visualmente en captura de pantalla
+- Modulo Centinela Globe (Ctrl+0) integrado en main.js, home.html y package.json
+- Icono de marca img-centinela-globe.png (256x256) generado y verificado visualmente
+- Captura de la home con scroll verificada: tarjeta Centinela Globe centrada con atajo Ctrl+0
+- 27/10/2026: WorldWideView (Centinela Globe) retirado del menu nativo de opciones
+  (Centinela y Ayuda); el atajo Ctrl+0 se registro por codigo (before-input-event)
+  y la tarjeta del inicio se mantiene. Instalador regenerado con npm run dist.
+- 27/10/2026: reorden de plataformas - EC NEWS (Ctrl+2) junto a EC Terminal Data (Ctrl+1)
+  y EC Send Pro (Ctrl+3) justo despues de EC NEWS; atajos renumerados segun el nuevo orden.
+- 27/10/2026: teleprompter de ultima hora agregado al inicio (cinta de titulares RSS):
+  8 fuentes (Google News, BBC Mundo, BBC News, El Pais, Al Jazeera, NBC News, The Verge,
+  TechCrunch), refresco cada 10 min, hasta 24 titulares; texto azul y rojo con distintivo
+  URGENTE cuando el titular coincide con senales de urgencia. Clic abre la noticia en el
+  navegador. Verificado en ejecucion real (CDP): 48 nodos, duracion 217 s, color #4d8cff.
+- 27/10/2026: teleprompter reubicado en la parte superior del inicio, justo debajo de la
+  barra del logo (header) y por encima del grid de plataformas.
+- Instancia Docker de Centinela Globe pendiente de arranque (requiere reinicio del equipo
+  para activar WSL2 y el motor de Docker Desktop)
 
 TAREA PENDIENTE
 ---------------
 SE DEBE INTEGRAR UN AGENTE IA LOCAL PARA QUE TRABAJE DENTRO DEL PROGRAMA.
-Se recomienda evaluar e integrar un agente de IA local (ej. Ollama + LLM local, LM Studio, Open WebUI, LocalAI, AnythingLLM, Jan u otra opción) que pueda operar de forma local sin depender de APIs externas. Esta integración queda pendiente de implementación y configuración.
+Se recomienda evaluar e integrar un agente de IA local (ej. Ollama + LLM local, LM Studio, Open WebUI, LocalAI, AnythingLLM, Jan u otra opcion) que pueda operar de forma local sin depender de APIs externas. Esta integracion queda pendiente de implementacion y configuracion.

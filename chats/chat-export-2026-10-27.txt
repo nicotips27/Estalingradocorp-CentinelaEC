@@ -1,0 +1,137 @@
+EXPORTACIÓN DE CHAT - CENTINELA BETA
+Fecha: 27/10/2026
+Repositorio: https://github.com/nicotips27/Estalingradocorp-CentinelaEC
+
+================================================================================
+RESUMEN DE LA SESIÓN
+--------------------
+Se integró WorldWideView como módulo "Centinela Globe" (Ctrl+0) dentro de Centinela BETA,
+con auto-arranque de la instancia Docker, auto-login y loader de marca embebido.
+Se corrigió un bug upstream (Prisma schema sin campos banned/banReason/banExpires
+requeridos por el plugin admin de Better Auth).
+
+--------------------------------------------------------------------------------
+1. ESTADO INICIAL
+--------------------------------------------------------------------------------
+- Centinela BETA sincronizado con app instalada (9 plataformas, Ctrl+1..9)
+- Instalador regenerado: dist\Centinela BETA Setup 1.0.0.exe (75.4 MB)
+- Docker Desktop instalado pero sin motor Linux (WSL2/Hyper-V deshabilitados)
+
+--------------------------------------------------------------------------------
+2. INTEGRACIÓN WORLDWIDEVIEW (CENTINELA GLOBE)
+--------------------------------------------------------------------------------
+Decisiones:
+- Nombre de marca: "Centinela Globe" (no "EC Globe" ni "WorldWideView")
+- Atajo: Ctrl+0 como 10º módulo
+- Instancia: self-hosted local (http://localhost:3000) via Docker Compose
+- Rebranding completo: logo SVG, header "CENTINELA GLOBE", metadata, boot/login/setup en español,
+  acentos del tema en azul Estalingrado (#0066ff/#0052cc), link del logo a estalingradocorp.qzz.io
+- Grid de la home: flex-wrap centrado (última fila con 1 tarjeta centrada)
+
+Archivos creados/modificados en Centinela:
+- main.js: GLOBE constants, auto-start (Docker Desktop + compose up), auto-login (sign-up/sign-in),
+  loader embebido (globe.html), status IPC, will-navigate customizado
+- home.html: nueva entrada SITES con shortcut 'Ctrl+0', icono img-centinela-globe.png, grid flex-wrap
+- preload.js: limpio (solo APIs de home)
+- globe-preload.js: nuevo, expone onGlobeStatus/globeRetry para el loader
+- globe.html: nuevo, loader de marca con pasos Docker/Stack/Sesión/Globo, log en vivo, retry
+- package.json: + globe.html + globe-preload.js en build.files
+- README.md + bitacora.txt: documentado todo el flujo
+
+Archivos creados/modificados en WorldWideView (clone shallow en ../worldwideview):
+- public/logo/logo-icon.svg, favicon.svg, favicon-inverted.svg: globo 3D estilo Estalingrado
+- src/components/layout/Header.tsx: "CENTINELA GLOBE" + subtitulo Estalingrado Corp
+- src/app/layout.tsx: title "Centinela Globe | Inteligencia Geoespacial"
+- src/components/common/BootOverlay.tsx: "Centinela Globe"
+- src/app/login/LoginForm.tsx / src/app/setup/page.tsx: textos en español + logo "C"
+- src/styles/theme-tokens.css: acentos por defecto en azul Estalingrado
+- Dockerfile: + ARG NEXT_PUBLIC_HUB_URL/DOCS_URL/LEGAL_URL + escritura a .env.production.local
+- prisma/schema.prisma: + banned/banReason/banExpires en BetterAuthUser (fix upstream)
+- prisma/migrations/20261027010000_add_user_ban_fields/migration.sql: ALTER TABLE
+- docker-compose.centinela.yml: compose sin red coolify, build args branding, env vars
+- .env: secretos generados + branding env vars
+- start-centinela-globe.ps1: script prepare/build/up/status/logs/down
+
+--------------------------------------------------------------------------------
+3. FIX UPSTREAM: PRISMA SCHEMA BANNED FIELDS
+--------------------------------------------------------------------------------
+Problema: plugin `admin` de Better Auth envía campo `banned` en creación de usuarios,
+pero esquema Prisma no lo declaraba → "Unknown argument `banned`" → 422 FAILED_TO_CREATE_USER.
+
+Fix aplicado:
+- prisma/schema.prisma: + banned Boolean @default(false), banReason String?, banExpires DateTime?
+- prisma/migrations/20261027010000_add_user_ban_fields/migration.sql: 3 ALTER TABLE
+- Rebuild de imagen Docker (4 min) → migración aplicada en entrypoint → sign-up/sign-in OK
+
+--------------------------------------------------------------------------------
+4. WSL2 / DOCKER
+--------------------------------------------------------------------------------
+- DISM habilitó Microsoft-Windows-Subsystem-Linux + VirtualMachinePlatform (requirió reinicio)
+- Tras reinicio: wsl --update (vía winget Microsoft.WSL 2.7.14) → WSL 2.7.14 funcional
+- Docker Desktop 29.7.2 arrancó con motor WSL2
+- Build de imagen branded: ~4 min (caché de capas), imagen final 626 MB
+- Contenedores: centinela-globe (puerto 3000), centinela-globe-engine (5000), DB, Redis
+
+--------------------------------------------------------------------------------
+5. AUTO-LOGIN FUNCIONANDO
+--------------------------------------------------------------------------------
+Flujo implementado en main.js:
+1. Usuario pulsa Ctrl+0 → carga globe.html (loader) en WebContentsView con preload
+2. main.js: health check → si down: docker desktop start + compose up -d (stream log)
+3. Poll /api/health hasta 200
+4. GET /api/auth/setup-status → si needsSetup: POST /api/ba/sign-up/email (crea usuario)
+5. POST /api/ba/sign-in/email → parsea Set-Cookie → session.defaultSession.cookies.set
+6. loadURL(http://localhost:3000/) → globo abre sin login manual
+
+Credenciales guardadas en %APPDATA%\centinela-beta\centinela-globe.json (email+password)
+
+--------------------------------------------------------------------------------
+6. VERIFICACIONES
+--------------------------------------------------------------------------------
+- node --check: main.js, preload.js, globe-preload.js, adblock.js → OK
+- npm run dist → instalador regenerado (75.4 MB, 26/10/2026 20:00 + rebuild posterior)
+- Sintaxis JS OK
+- Captura CDP: home + tarjeta Centinela Globe centrada (Ctrl+0) → navega a loader → auto-login →
+  http://localhost:3000/ (globo cargado, no /setup)
+- Sign-up + sign-in API: 200 OK, session cookie better-auth.session_token
+- Esquema Prisma corregido: campos banned/banReason/banExpires en DB
+
+--------------------------------------------------------------------------------
+7. DOCUMENTACIÓN ACTUALIZADA
+--------------------------------------------------------------------------------
+- README.md: tabla plataformas + Ctrl+0, sección "Centinela Globe (instancia propia integrada)"
+  con flujo completo auto-arranque, auto-login, configuración
+- bitacora.txt: fecha 26/10/2026, 10 plataformas, fix Prisma, pasos post-reboot, estado WSL2/Docker
+
+--------------------------------------------------------------------------------
+ARCHIVOS CLAVE MODIFICADOS (git status)
+--------------------------------------------------------------------------------
+ M main.js
+ M home.html
+ M preload.js
+ M package.json
+ M README.md
+ M bitacora.txt
+ M icon.ico
+ M icon.png
+ M make-icon.js
+ M renderer.html
+ M splash.html
+?? Imagenes/Iconos/icono/icono.png
+?? chats/
+?? img-centinela-globe.png
+?? img-driveandlisten.png
+?? globe.html
+?? globe-preload.js
+
+--------------------------------------------------------------------------------
+PRÓXIMOS PASOS PENDIENTES
+--------------------------------------------------------------------------------
+- Opcional: instalar seeders comunitarios (wwv-seeders) para capas de datos en vivo
+- Opcional: configurar NEXT_PUBLIC_CESIUM_ION_TOKEN / BING_MAPS_KEY para imagery
+- Commit + push de los cambios al repo GitHub
+- (Opcional) empaquetar la instancia en el instalador NSIS para distribución completa
+
+================================================================================
+FIN DE EXPORTACIÓN
+================================================================================

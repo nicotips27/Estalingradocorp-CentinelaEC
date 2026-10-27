@@ -1,6 +1,6 @@
 # Centinela BETA
 
-App de escritorio para Windows que abre **seis plataformas de monitoreo y datos** en ventanas dedicadas, sin necesidad de navegador. Construida con Electron, con temática **azul y negro**, pantalla de carga con logo de Estalingrado Corp y bloqueo de anuncios integrado.
+App de escritorio para Windows que abre **diez plataformas de monitoreo y datos** en vistas dedicadas, sin necesidad de navegador. Construida con Electron, con temática **azul y negro**, pantalla de carga con logo de Estalingrado Corp y bloqueo de anuncios integrado.
 
 ---
 
@@ -20,11 +20,11 @@ App de escritorio para Windows que abre **seis plataformas de monitoreo y datos*
 
 ## Descripción
 
-**Centinela BETA** es un *wrapper* de escritorio construido con [Electron](https://www.electronjs.org/). Su propósito es ofrecer acceso rápido y autónomo a **nueve plataformas** de monitoreo de inteligencia y datos.
+**Centinela BETA** es un *wrapper* de escritorio construido con [Electron](https://www.electronjs.org/). Su propósito es ofrecer acceso rápido y autónomo a **diez plataformas** de monitoreo de inteligencia y datos.
 
 Características principales:
 
-- Carga cada web en una ventana dedicada.
+- Carga cada web en una **vista aislada** (`WebContentsView`) dentro de la ventana principal.
 - **Pantalla de inicio** con tarjetas para elegir cada plataforma.
 - **Menú nativo** para alternar entre webs.
 - Muestra una pantalla de carga animada mientras las webs se conectan.
@@ -35,20 +35,24 @@ Características principales:
 
 ## Características
 
-- **Ventana dedicada** (1280×800, tamaño mínimo 800×600) con **marco nativo de Windows** y menú clásico siempre visible (Centinela, Ver, Ayuda).
-- **Tema azul y negro** en toda la interfaz (pantalla de inicio y splash), con acentos `#2ea6ff` → `#00b4ff`.
-- **Pantalla de inicio**: al arrancar (y con **Inicio** del menú / Ctrl+H) se muestra un lanzador con tarjetas para elegir cada web, tagline descriptivo, reloj en vivo, estado de conexión de cada plataforma (online/offline) e **interruptor "Encriptar la Intra-Net"** (desactivado por defecto; al activarlo un **LED** pasa de rojo a verde y el indicador cambia a *SYS.ENCRYPTION ACTIVE*).
+- **Vista dedicada por plataforma** (`WebContentsView`): cada sitio se renderiza en su propia vista aislada, con mejor rendimiento y sin recargar la pantalla de inicio. La ventana principal (1280×800, mínimo 800×600) arranca en **pantalla completa**.
+- **User-Agent de Chrome 124** (`session.defaultSession.setUserAgent`): evita que Cloudflare y otros sitios anti-bot bloqueen a Electron.
+- **Tema azul y negro** en toda la interfaz (pantalla de inicio y splash), con acentos `#0052cc` → `#0066ff`.
+- **Pantalla de inicio**: al arrancar (y con **Inicio** del menú / Ctrl+H) se muestra un lanzador con tarjetas para elegir cada web, tagline descriptivo, reloj en vivo, estado de conexión de cada plataforma (online/offline) e **interruptor "Encriptar la Intra-Net"** (desactivado por defecto; al activarlo el **LED** y los indicadores de red pasan a azul y el estado cambia a *SYS.ENCRYPTION ACTIVE*).
+- **Fondo de estrellas animado** (canvas 2D) con parallax, twinkling y soporte para `prefers-reduced-motion`.
+- **Monitoreo de conectividad** por plataforma mediante peticiones `HEAD` con `AbortController` (timeout 5 s), con reintento y estado agregado en el pie (*INTRA-NET ONLINE / PARCIAL / SIN CONEXIÓN*).
+- **Teleprompter de última hora** en la pantalla de inicio: cinta de titulares que se desplaza en la parte superior, alimentada por RSS de **Google News, BBC Mundo, BBC News, El País, Al Jazeera, NBC News, The Verge y TechCrunch** (descarga en el proceso principal, refresco cada 10 min, máximo 24 titulares). Los titulares van en **azul** y los que coinciden con señales de urgencia (*URGENTE, breaking news, alerta máxima, estado de emergencia, evacuación, explosión, terremoto, atentado, tiroteo, víctimas…*) en **rojo** con distintivo `URGENTE`. Clic en un titular → abre la noticia en el navegador. Sin conexión, la cinta muestra *SIN SEÑAL*.
 - **Tarjetas con imágenes** propias para todas las plataformas (favicons/iconos oficiales de cada sitio).
 - **Opción "Sobre el programa"** en el menú **Ayuda** (F1): modal con la info de Centinela BETA, la descripción y un botón que abre la web de Estalingrado Corp (`estalingradocorp.qzz.io`).
 - **Menú nativo** con los módulos **Centinela**, **Ver** y **Ayuda**:
-  - **Inicio** (Ctrl+H) y atajos **Ctrl+1 … Ctrl+8** para cambiar de web.
-  - Recargar (Ctrl+R), DevTools (F12), Pantalla completa (F11).
+  - **Inicio** (Ctrl+H) y atajos **Ctrl+1 … Ctrl+9** para cambiar de web.
+  - Recargar (Ctrl+R), DevTools (F12), Pantalla completa (F11) —_RECARGAR_ y _DEVTOOLS_ operan sobre la vista activa.
   - "Sobre el programa" y accesos a las webs en el navegador.
-- **Pantalla de carga (splash)** con logo, título y texto *"Conectando a La Intra-net servicio estalingrado corp…"* con animación de puntos.
-- **Carga en paralelo**: la web se carga en segundo plano mientras se muestra el splash, con transición al terminar.
+- **Pantalla de carga (splash)** con logo, título y texto *"Conectando a la Intra-net…"* con spinner circular.
+- **Carga en paralelo**: la web se carga en segundo plano mientras se muestra el splash, con transición al terminar (mínimo 1,8 s).
 - **Seguridad de navegación**: solo se permiten las plataformas configuradas; el resto de enlaces se abren en el navegador del sistema.
 - **Bloqueo de anuncios** (listas EasyList + EasyPrivacy con caché local).
-- **Aislamiento de procesos**: `contextIsolation: true` y `nodeIntegration: false`.
+- **Aislamiento de procesos**: `contextIsolation: true`, `nodeIntegration: false` y `sandbox: true` en las vistas de sitio.
 - **Instalador NSIS** con asistente, selección de carpeta y accesos directos.
 
 ---
@@ -57,42 +61,47 @@ Características principales:
 
 | Atajo | Plataforma | URL |
 | --- | --- | --- |
-| Ctrl+1 | Palantir Gotham | https://www.palantir.com/platforms/gotham/ |
-| Ctrl+2 | War Watch | https://www.war-watch.com/ |
-| Ctrl+3 | Conflict Radar 360 | https://www.conflictradar360.com/ |
-| Ctrl+4 | World Monitor | https://www.worldmonitor.app/dashboard?… |
-| Ctrl+5 | EC NEWS | https://nicotips27.github.io/ECnews/ |
-| Ctrl+6 | EC Terminal Data | https://nicotips27.github.io/Estalingrado-corp-Terminal-data/ |
+| Ctrl+1 | EC Terminal Data | https://nicotips27.github.io/Estalingrado-corp-Terminal-data/ |
+| Ctrl+2 | EC NEWS | https://nicotips27.github.io/ECnews/ |
+| Ctrl+3 | EC Send Pro | https://estalingradocorp.github.io/ECsendpro/ |
+| Ctrl+4 | Osiris AI | https://osirisai.live/ |
+| Ctrl+5 | OpenGrid Works | https://opengridworks.com/power-plants |
+| Ctrl+6 | Provenance | https://provenance-online.com/app?lat=5.6961&lon=-52.32892&z=1.74&layers=&base=satellite |
 | Ctrl+7 | Radio Garden | https://radio.garden/ |
-| Ctrl+8 | EC Send Pro | https://estalingradocorp.github.io/ECsendpro/ |
-| Ctrl+9 | Famelack | https://famelack.com/ |
+| Ctrl+8 | Famelack | https://famelack.com/ |
+| Ctrl+9 | Drive & Listen | https://driveandlisten.app/ |
 
-> World Monitor abre su dashboard en vivo con una configuración concreta (zoom global, últimos 7 días y varias capas de datos).
+> Provenance abre su mapa satelital con una configuración concreta (lat/lon, zoom y capas).
 
 ---
 
 ## Estructura del proyecto
 
 ```
-lucher/
+Estalingradocorp-CentinelaEC/
 ├── package.json        # Configuración del proyecto, scripts y electron-builder
 ├── package-lock.json   # Bloqueo de dependencias (generado)
-├── main.js             # Proceso principal: ventanas, menú nativo, navegación segura e IPC
+├── main.js             # Proceso principal: WebContentsView, menú nativo, navegación segura e IPC
 ├── preload.js          # Puente seguro entre el renderizador y Node
 ├── renderer.html       # Página de respaldo (poco usada)
 ├── splash.html         # Pantalla de carga con el logo y el texto
-├── home.html           # Pantalla de inicio (lanzador)
+├── home.html           # Pantalla de inicio (lanzador + teleprompter de noticias)
 ├── logo.jpg            # Logo de Estalingrado Corp (splash, tarjeta EC Terminal Data)
 ├── img-ecnews.jpg      # Imagen de la tarjeta EC NEWS
-├── img-palantir.png    # Imagen de la tarjeta Palantir
+├── img-osiris.png      # Imagen de la tarjeta Osiris AI
+├── img-opengrid.webp   # Imagen de la tarjeta OpenGrid Works
+├── img-warwatch.png    # Imagen de la tarjeta Provenance
 ├── img-ecsendpro.png   # Imagen de la tarjeta EC Send Pro
-├── img-warwatch.png    # Icono de la tarjeta War Watch
+├── img-radiogarden.png   # Imagen de la tarjeta Radio Garden
+├── img-famelack.png      # Imagen de la tarjeta Famelack
+├── img-driveandlisten.png # Imagen de la tarjeta Drive & Listen
+├── img-palantir.png    # Imagen de la tarjeta Palantir
 ├── img-conflictradar.png # Icono de la tarjeta Conflict Radar 360
 ├── img-worldmonitor.png  # Icono de la tarjeta World Monitor
-├── img-radiogarden.png   # Icono de la tarjeta Radio Garden
-├── img-famelack.png      # Icono de la tarjeta Famelack
-├── icon.png            # Icono de la app (derivado del logo)
-├── make-icon.js        # Script que genera icon.png (uso único)
+├── Imagenes/Iconos/icono/icono.png # Icono maestro (1254×1254, fuente del app icon)
+├── icon.png            # Icono de la app (256×256, generado desde el maestro)
+├── icon.ico            # Icono del instalador NSIS (generado desde el maestro)
+├── make-icon.js        # Script que regenera icon.png e icon.ico
 ├── adblock.js          # Bloqueo de anuncios con caché local
 ├── node_modules/       # Dependencias (generado por npm)
 └── dist/               # Instaladores generados (resultado del build)
@@ -103,13 +112,13 @@ lucher/
 
 | Archivo | Rol |
 | --- | --- |
-| `main.js` | Proceso principal de Electron. Define las webs, construye el menú nativo, crea la ventana del splash y la principal, maneja la navegación segura y el IPC. |
-| `home.html` | Pantalla de inicio: tarjetas para elegir cada web, reloj, estado de conexión, interruptor de encriptación y tagline. |
-| `splash.html` | Pantalla de carga: logo, título, subtítulo y texto de conexión con animación CSS. |
-| `preload.js` | Puente seguro (`window.conflictRadar` y `window.centinela.{selectSite,getCurrent,openExternal}`) entre el renderizador y el proceso principal. |
+| `main.js` | Proceso principal de Electron. Define las webs, construye el menú nativo, crea el splash y la ventana principal, gestiona las `WebContentsView` por plataforma y el IPC. |
+| `home.html` | Pantalla de inicio: tarjetas para elegir cada web, reloj, estado de conexión, interruptor de encriptación, canvas de estrellas y tagline. |
+| `splash.html` | Pantalla de carga: logo, título, subtítulo y texto de conexión con spinner CSS. |
+| `preload.js` | Puente seguro (`window.centinela.{selectSite,getCurrent,openExternal}`) entre el renderizador y el proceso principal, con inyección de estilos base. |
 | `adblock.js` | Inicializa el bloqueo de anuncios (`@cliqz/adblocker`) con listas EasyList/EasyPrivacy y caché local. |
 | `package.json` | Define nombre, versión, scripts (`start`, `dist`), archivos empaquetados y configuración de electron-builder. |
-| `make-icon.js` | Genera `icon.png` a partir de una imagen (uso único). |
+| `make-icon.js` | Regenera `icon.png` (256×256) e `icon.ico` desde el icono maestro `Imagenes/Iconos/icono/icono.png`. Requiere `npm install` (usa `app-builder`). |
 
 ---
 
@@ -172,6 +181,20 @@ dist/
 - **Primer build:** descarga las herramientas NSIS, así que la primera compilación tarda más.
 - **Versión:** el nombre del instalador incluye la `version` de `package.json`. Auméntala (`npm version patch`) antes de publicar una nueva build.
 
+### Regenerar el icono de la app
+
+El icono maestro vive en `Imagenes/Iconos/icono/icono.png` (1254×1254). Para aplicarlo al app:
+
+```powershell
+node make-icon.js
+```
+
+Esto regenera `icon.png` (256×256, para el `.exe` y la barra de tareas) e `icon.ico` (256×256, para el instalador NSIS). Después hay que reconstruir el instalador:
+
+```powershell
+npm run dist
+```
+
 ---
 
 ## Distribución
@@ -194,10 +217,12 @@ El instalador es un **programa de uso interno** que no está firmado digitalment
 | --- | --- |
 | Aviso azul "Editor desconocido" al instalar | Normal sin firma: **Más información → Ejecutar de todos modos**. |
 | La app no muestra la web (pantalla en blanco) | Verifica la conexión a las plataformas y que el sitio esté en línea. |
+| Un sitio muestra un aviso de Cloudflare | Verifica que el User-Agent de Chrome 124 se aplique (`session.defaultSession.setUserAgent`). |
+| El teleprompter muestra *SIN SEÑAL* | Sin conexión a internet: el proceso principal no pudo descargar los RSS de las agencias. |
 | No bloquea anuncios la primera vez | La primera ejecución necesita internet para descargar las listas EasyList/EasyPrivacy y guardarlas en caché. |
-| El splash se queda mucho tiempo | Es por red de seguridad; la app fuerza la transición a los ~14,6 s máx. |
+| El splash se queda mucho tiempo | Es por red de seguridad; la app fuerza la transición a los ~11,8 s máx. |
 | Electron no descarga el binario al `npm install` | Revisa la clave `allowScripts` en `package.json`. |
-| La carpeta está en OneDrive y da errores al compilar | OneDrive bloquea archivos en uso. Mueve el proyecto a una ruta local (p. ej. `C:\dev\lucher`). |
+| La carpeta está en OneDrive y da errores al compilar | OneDrive bloquea archivos en uso. Mueve el proyecto a una ruta local (p. ej. `C:\dev\centinela`). |
 
 ---
 
@@ -219,3 +244,16 @@ El instalador es un **programa de uso interno** que no está firmado digitalment
 - Se añaden **EC Send Pro** y **Famelack** (Ctrl+7, Ctrl+8).
 - **Ventana nativa de Windows** con menú clásico siempre visible (Centinela, Ver, Ayuda).
 - Se añade **War Watch** junto a Palantir (Ctrl+2) y se mejoran los iconos de todas las plataformas con sus favicons oficiales.
+- **Arquitectura `WebContentsView`**: cada plataforma se renderiza en una vista aislada, con mejor rendimiento y gestión de vistas pendientes/cargadas.
+- **User-Agent de Chrome 124** aplicado a la sesión por defecto para evitar bloqueos anti-bot (Cloudflare).
+- **Pantalla completa por defecto** al abrir la app.
+- **Fondo de estrellas animado** (canvas 2D) en la pantalla de inicio, con soporte `prefers-reduced-motion`.
+- **Toggle "Encriptar la Intra-Net"** funcional: LED e indicadores de red cambian a azul y el estado pasa a *SYS.ENCRYPTION ACTIVE*.
+- **Monitoreo de conectividad** por plataforma vía `HEAD` con timeout de 5 s, con estado agregado (*ONLINE / PARCIAL / SIN CONEXIÓN*) en el pie.
+- **Splash más rápido** (mínimo 1,8 s) con spinner circular y rediseño del *renderer.html*.
+- Se retiran **Palantir**, **War Watch**, **Conflict Radar 360** y **World Monitor**; entran **Osiris AI**, **OpenGrid Works** y **Provenance**.
+- **Nuevo icono de la app**: "C" con aguja de brújula sobre fondo oscuro con borde azul. Se aplica al `.exe`, a la barra de tareas y al instalador NSIS. El pipeline queda en `make-icon.js` (lee `Imagenes/Iconos/icono/icono.png`).
+- **Nueva plataforma: Drive & Listen** (Ctrl+9) — recorridos virtuales por 100+ ciudades con radio local. Grid de inicio ajustado a 3 columnas (3×3).
+- **Teleprompter de última hora** en el inicio (RSS de 8 agencias, titulares en azul y en rojo cuando son urgentes, clic para abrir la noticia).
+- **Orden de plataformas reordenado**: EC NEWS (Ctrl+2) junto a EC Terminal Data (Ctrl+1) y EC Send Pro (Ctrl+3) justo después.
+- **27/10/2026: se elimina el módulo Centinela Globe (WorldWideView)** de la app: tarjeta, atajo Ctrl+0, menú, loader `globe.html`, `globe-preload.js` y toda la lógica de Docker/auto-login. La app queda con 9 plataformas (Ctrl+1–9). El proyecto `..\worldwideview` y su instancia Docker quedan intactos en disco, fuera de Centinela.
