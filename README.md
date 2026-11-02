@@ -1,26 +1,27 @@
 # Centinela BETA
 
-App de escritorio para Windows que abre **diez plataformas de monitoreo y datos** en vistas dedicadas, sin necesidad de navegador. Construida con Electron, con temática **azul y negro**, pantalla de carga con logo de Estalingrado Corp y bloqueo de anuncios integrado.
+App de escritorio para Windows que abre **nueve plataformas de monitoreo y datos** en vistas dedicadas, sin necesidad de navegador. Construida con Electron, con temática **azul y negro**, pantalla de carga con logo de Estalingrado Corp y bloqueo de anuncios integrado.
 
 ---
 
 ## Tabla de contenidos
 
 1. [Descripción](#descripción)
-2. [Características](#características)
-3. [Plataformas](#plataformas)
-4. [Estructura del proyecto](#estructura-del-proyecto)
-5. [Requisitos](#requisitos)
-6. [Puesta en marcha (desarrollo)](#puesta-en-marcha-desarrollo)
-7. [Generar el instalador](#generar-el-instalador)
-8. [Distribución](#distribución)
-9. [Solución de problemas](#solución-de-problemas)
+2. [Capturas de pantalla](#capturas-de-pantalla)
+3. [Características](#características)
+4. [Plataformas](#plataformas)
+5. [Estructura del proyecto](#estructura-del-proyecto)
+6. [Requisitos](#requisitos)
+7. [Puesta en marcha (desarrollo)](#puesta-en-marcha-desarrollo)
+8. [Generar el instalador](#generar-el-instalador)
+9. [Distribución](#distribución)
+10. [Solución de problemas](#solución-de-problemas)
 
 ---
 
 ## Descripción
 
-**Centinela BETA** es un *wrapper* de escritorio construido con [Electron](https://www.electronjs.org/). Su propósito es ofrecer acceso rápido y autónomo a **diez plataformas** de monitoreo de inteligencia y datos.
+**Centinela BETA** es un *wrapper* de escritorio construido con [Electron](https://www.electronjs.org/). Su propósito es ofrecer acceso rápido y autónomo a **nueve plataformas** de monitoreo de inteligencia y datos.
 
 Características principales:
 
@@ -30,6 +31,35 @@ Características principales:
 - Muestra una pantalla de carga animada mientras las webs se conectan.
 - Reenvía los enlaces externos (que no sean de las webs permitidas) al navegador del sistema.
 - Se instala como programa normal de Windows (con acceso directo en escritorio e inicio).
+
+---
+
+## Capturas de pantalla
+
+### Pantalla de inicio
+
+![Pantalla de inicio de Centinela BETA](Imagenes/demostracion/inicio.png)
+
+Vista principal con las plataformas, el teleprompter de última hora, el reloj, el estado de conexión, los accesos **Anotador** y **Captura**, y el interruptor **Encriptar la Intra-Net**.
+
+### Anotador
+
+![Anotador de Centinela BETA](Imagenes/demostracion/anotador.png)
+
+Bloc de notas integrado como vista interna (Ctrl+N): varias notas, autoguardado, contador de palabras/caracteres y exportación a `.txt`.
+
+### Pantalla de carga
+
+![Pantalla de carga de Centinela BETA](Imagenes/demostracion/splash.png)
+
+Splash con el logo de Estalingrado Corp y el texto *"Conectando a la Intra-net…"*.
+
+<details>
+<summary>Captura anterior (09/10/2026)</summary>
+
+![Inicio de Centinela BETA — versión anterior](Imagenes/demostracion/inicio-2026-10-09.png)
+
+</details>
 
 ---
 
@@ -44,9 +74,11 @@ Características principales:
 - **Teleprompter de última hora** en la pantalla de inicio: cinta de titulares que se desplaza en la parte superior, alimentada por RSS de **Google News, BBC Mundo, BBC News, El País, Al Jazeera, NBC News, The Verge y TechCrunch** (descarga en el proceso principal, refresco cada 10 min, máximo 24 titulares). Los titulares van en **azul** y los que coinciden con señales de urgencia (*URGENTE, breaking news, alerta máxima, estado de emergencia, evacuación, explosión, terremoto, atentado, tiroteo, víctimas…*) en **rojo** con distintivo `URGENTE`. Clic en un titular → abre la noticia en el navegador. Sin conexión, la cinta muestra *SIN SEÑAL*.
 - **Tarjetas con imágenes** propias para todas las plataformas (favicons/iconos oficiales de cada sitio).
 - **Opción "Sobre el programa"** en el menú **Ayuda** (F1): modal con la info de Centinela BETA, la descripción y un botón que abre la web de Estalingrado Corp (`estalingradocorp.qzz.io`).
+- **Anotador** (menú **Centinela** o botón del inicio, Ctrl+N): bloc de notas integrado como vista interna de la app (no abre ventanas ni saca de pantalla completa), con varias notas, autoguardado local, contador de palabras/caracteres, exportación a `.txt` y botón **Volver** (Esc).
+- **Capturas de pantalla** (menú **Ver** o botón **Captura**, Ctrl+Shift+S): captura la ventana completa de Centinela (incluida la vista activa), la guarda en `Imágenes\Centinela Capturas` y la copia al portapapeles.
 - **Menú nativo** con los módulos **Centinela**, **Ver** y **Ayuda**:
-  - **Inicio** (Ctrl+H) y atajos **Ctrl+1 … Ctrl+9** para cambiar de web.
-  - Recargar (Ctrl+R), DevTools (F12), Pantalla completa (F11) —_RECARGAR_ y _DEVTOOLS_ operan sobre la vista activa.
+  - **Inicio** (Ctrl+H), **Anotador** (Ctrl+N) y atajos **Ctrl+1 … Ctrl+9** para cambiar de web.
+  - Recargar (Ctrl+R), DevTools (F12), Captura de pantalla (Ctrl+Shift+S), Pantalla completa (F11) —_RECARGAR_ y _DEVTOOLS_ operan sobre la vista activa.
   - "Sobre el programa" y accesos a las webs en el navegador.
 - **Pantalla de carga (splash)** con logo, título y texto *"Conectando a la Intra-net…"* con spinner circular.
 - **Carga en paralelo**: la web se carga en segundo plano mientras se muestra el splash, con transición al terminar (mínimo 1,8 s).
@@ -86,6 +118,8 @@ Estalingradocorp-CentinelaEC/
 ├── renderer.html       # Página de respaldo (poco usada)
 ├── splash.html         # Pantalla de carga con el logo y el texto
 ├── home.html           # Pantalla de inicio (lanzador + teleprompter de noticias)
+├── notes.html          # Anotador: bloc de notas con autoguardado y exportación
+├── notes-preload.js    # Puente seguro del anotador (cargar / guardar / exportar)
 ├── logo.jpg            # Logo de Estalingrado Corp (splash, tarjeta EC Terminal Data)
 ├── img-ecnews.jpg      # Imagen de la tarjeta EC NEWS
 ├── img-osiris.png      # Imagen de la tarjeta Osiris AI
@@ -99,6 +133,7 @@ Estalingradocorp-CentinelaEC/
 ├── img-conflictradar.png # Icono de la tarjeta Conflict Radar 360
 ├── img-worldmonitor.png  # Icono de la tarjeta World Monitor
 ├── Imagenes/Iconos/icono/icono.png # Icono maestro (1254×1254, fuente del app icon)
+├── Imagenes/demostracion/ # Capturas de pantalla usadas en este README
 ├── icon.png            # Icono de la app (256×256, generado desde el maestro)
 ├── icon.ico            # Icono del instalador NSIS (generado desde el maestro)
 ├── make-icon.js        # Script que regenera icon.png e icon.ico
@@ -114,8 +149,10 @@ Estalingradocorp-CentinelaEC/
 | --- | --- |
 | `main.js` | Proceso principal de Electron. Define las webs, construye el menú nativo, crea el splash y la ventana principal, gestiona las `WebContentsView` por plataforma y el IPC. |
 | `home.html` | Pantalla de inicio: tarjetas para elegir cada web, reloj, estado de conexión, interruptor de encriptación, canvas de estrellas y tagline. |
+| `notes.html` | Anotador: bloc de notas integrado como vista interna, con lista de notas, autoguardado, contador y exportación a `.txt`. |
+| `notes-preload.js` | Puente seguro del anotador (`window.anotador.{load,save,saveSync,exportNote,openFolder,close,capture}`). |
 | `splash.html` | Pantalla de carga: logo, título, subtítulo y texto de conexión con spinner CSS. |
-| `preload.js` | Puente seguro (`window.centinela.{selectSite,getCurrent,openExternal}`) entre el renderizador y el proceso principal, con inyección de estilos base. |
+| `preload.js` | Puente seguro (`window.centinela.{selectSite,getCurrent,openExternal,openNotes}`) entre el renderizador y el proceso principal, con inyección de estilos base. |
 | `adblock.js` | Inicializa el bloqueo de anuncios (`@cliqz/adblocker`) con listas EasyList/EasyPrivacy y caché local. |
 | `package.json` | Define nombre, versión, scripts (`start`, `dist`), archivos empaquetados y configuración de electron-builder. |
 | `make-icon.js` | Regenera `icon.png` (256×256) e `icon.ico` desde el icono maestro `Imagenes/Iconos/icono/icono.png`. Requiere `npm install` (usa `app-builder`). |
@@ -257,3 +294,5 @@ El instalador es un **programa de uso interno** que no está firmado digitalment
 - **Teleprompter de última hora** en el inicio (RSS de 8 agencias, titulares en azul y en rojo cuando son urgentes, clic para abrir la noticia).
 - **Orden de plataformas reordenado**: EC NEWS (Ctrl+2) junto a EC Terminal Data (Ctrl+1) y EC Send Pro (Ctrl+3) justo después.
 - **27/10/2026: se elimina el módulo Centinela Globe (WorldWideView)** de la app: tarjeta, atajo Ctrl+0, menú, loader `globe.html`, `globe-preload.js` y toda la lógica de Docker/auto-login. La app queda con 9 plataformas (Ctrl+1–9). El proyecto `..\worldwideview` y su instancia Docker quedan intactos en disco, fuera de Centinela.
+- **02/11/2026: Anotador** en el menú **Centinela** (Ctrl+N) y botón en la cabecera del inicio: vista interna (no abre ventana ni saca de pantalla completa), varias notas, autoguardado en `%APPDATA%\centinela-beta\anotador.json`, contador de palabras/caracteres, exportación a `.txt` y acceso a la carpeta de datos.
+- **02/11/2026: Capturas de pantalla** en el menú **Ver** (Ctrl+Shift+S) y botón **Captura** en el inicio: guarda la ventana completa de Centinela en `Imágenes\Centinela Capturas` y la copia al portapapeles.

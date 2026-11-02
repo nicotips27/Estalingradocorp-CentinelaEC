@@ -17,6 +17,8 @@ contextBridge.exposeInMainWorld('centinela', {
   selectSite: (index) => ipcRenderer.send('navigate', index),
   getCurrent: () => ipcRenderer.invoke('get-current'),
   openExternal: (url) => ipcRenderer.send('open-external', url),
+  openNotes: () => ipcRenderer.send('open-notes'),
+  capture: () => ipcRenderer.invoke('app:capture'),
   getNews: () => ipcRenderer.invoke('news:get'),
   onNews: (cb) => ipcRenderer.on('news-update', (_e, items) => cb(items))
 });

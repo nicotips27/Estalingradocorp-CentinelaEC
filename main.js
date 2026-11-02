@@ -1,6 +1,12 @@
-const { app, BrowserWindow, WebContentsView, session, shell, Menu, ipcMain } = require('electron');
+const { app, BrowserWindow, WebContentsView, session, shell, Menu, ipcMain, dialog,
+        desktopCapturer, screen, clipboard, Notification } = require('electron');
 const path = require('path');
+const fs = require('fs');
+const crypto = require('crypto');
 const { initAdblock } = require('./adblock');
+
+// Identidad de Windows: hace que las notificaciones (capturas) salgan como Centinela BETA.
+app.setAppUserModelId('com.centinela.beta');
 
 // User-Agent de Chrome real: evita que Cloudflare/sitios bloqueen a Electron.
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
@@ -21,6 +27,8 @@ let currentSite = -1;
 const SPLASH_MIN_MS = 1800;
 let mainWindow = null;
 let splashWindow = null;
+let notesView = null;      // anotador como vista interna (no rompe pantalla completa)
+let notesVisible = false;
 let siteView = null;      // vista del sitio actualmente visible
 let pendingView = null;   // vista cargando (todavía no visible)
 
@@ -190,6 +198,7 @@ function contentBounds() {
 }
 
 function activeWebContents() {
+  if (notesView && notesVisible && !notesView.webContents.isDestroyed()) return notesView.webContents;
   if (siteView && !siteView.webContents.isDestroyed()) return siteView.webContents;
   return mainWindow && !mainWindow.isDestroyed() ? mainWindow.webContents : null;
 }
@@ -214,6 +223,11 @@ function buildMenu() {
       label: 'Centinela',
       submenu: [
         { label: 'Inicio', accelerator: 'CmdOrCtrl+H', click: () => goHome() },
+        {
+          label: notesVisible ? 'Cerrar anotador' : 'Anotador',
+          accelerator: 'CmdOrCtrl+N',
+          click: () => { notesVisible ? closeNotes() : openNotes(); }
+        },
         { type: 'separator' },
         ...siteMenuItems,
         { type: 'separator' },
@@ -225,6 +239,17 @@ function buildMenu() {
       submenu: [
         { label: 'Recargar', accelerator: 'CmdOrCtrl+R', click: () => activeWebContents()?.reload() },
         { label: 'DevTools', accelerator: 'F12', click: () => activeWebContents()?.toggleDevTools() },
+        { type: 'separator' },
+        { label: 'Captura de pantalla', accelerator: 'CmdOrCtrl+Shift+S', click: () => takeScreenshot() },
+        {
+          label: 'Abrir carpeta de capturas',
+          click: () => {
+            try {
+              fs.mkdirSync(capturesDir(), { recursive: true });
+              shell.openPath(capturesDir());
+            } catch (e) {}
+          }
+        },
         { type: 'separator' },
         { label: 'Pantalla completa', accelerator: 'F11', click: () => {
           if (!mainWindow) return;
@@ -246,7 +271,6 @@ function buildMenu() {
 }
 
 function showAbout() {
-  const { dialog, shell } = require('electron');
   dialog.showMessageBox(mainWindow, {
     type: 'info',
     title: 'Centinela BETA',
@@ -257,6 +281,248 @@ function showAbout() {
     defaultId: 0
   }).then(({ response }) => {
     if (response === 1) shell.openExternal('https://estalingradocorp.qzz.io/');
+  });
+}
+
+// ── Anotador ────────────────────────────────────────────────────────────────
+const NOTES_MAX_NOTES = 500;
+const NOTES_MAX_TITLE = 200;
+const NOTES_MAX_BODY = 200000;
+
+function notesFilePath() {
+  return path.join(app.getPath('userData'), 'anotador.json');
+}
+
+function sanitizeNotesState(input) {
+  const now = Date.now();
+  const seen = new Set();
+  const notes = [];
+  const source = input && Array.isArray(input.notes) ? input.notes.slice(0, NOTES_MAX_NOTES) : [];
+
+  for (const raw of source) {
+    if (!raw || typeof raw !== 'object') continue;
+    let id = typeof raw.id === 'string' ? raw.id.trim().slice(0, 64) : '';
+    if (!id) id = crypto.randomUUID();
+    if (seen.has(id)) continue;
+    seen.add(id);
+    notes.push({
+      id,
+      title: String(raw.title || '').slice(0, NOTES_MAX_TITLE),
+      body: String(raw.body || '').slice(0, NOTES_MAX_BODY),
+      created: Number(raw.created) || now,
+      updated: Number(raw.updated) || now
+    });
+  }
+
+  let activeId = typeof (input && input.activeId) === 'string' ? input.activeId : null;
+  if (!notes.some(n => n.id === activeId)) activeId = notes.length ? notes[0].id : null;
+
+  return { notes, activeId };
+}
+
+function readNotesState() {
+  try {
+    const raw = fs.readFileSync(notesFilePath(), 'utf8');
+    const state = sanitizeNotesState(JSON.parse(raw));
+    if (state.notes.length) return state;
+  } catch (e) {}
+  return { notes: [], activeId: null };
+}
+
+function writeNotesState(input) {
+  const state = sanitizeNotesState(input);
+  const file = notesFilePath();
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const tmp = file + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(state, null, 2), 'utf8');
+  fs.renameSync(tmp, file);
+  return state;
+}
+
+// ── Anotador (vista interna) ────────────────────────────────────────────────
+function openNotes() {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+
+  if (!notesView || notesView.webContents.isDestroyed()) {
+    notesView = new WebContentsView({
+      webPreferences: {
+        preload: path.join(__dirname, 'notes-preload.js'),
+        contextIsolation: true,
+        nodeIntegration: false,
+        backgroundThrottling: false
+      }
+    });
+    notesView.webContents.loadFile(path.join(__dirname, 'notes.html'));
+  }
+
+  if (!notesVisible) {
+    mainWindow.contentView.addChildView(notesView);
+    notesVisible = true;
+  }
+
+  notesView.setBounds(contentBounds());
+  notesView.webContents.focus();
+  mainWindow.focus();
+  buildMenu();
+}
+
+function closeNotes() {
+  if (!notesView || !notesVisible) return;
+  try { mainWindow.contentView.removeChildView(notesView); } catch (e) {}
+  notesVisible = false;
+
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    if (siteView && !siteView.webContents.isDestroyed()) siteView.webContents.focus();
+    else mainWindow.webContents.focus();
+    mainWindow.focus();
+  }
+  buildMenu();
+}
+
+function destroyNotesView() {
+  if (!notesView) return;
+  const view = notesView;
+  notesView = null;
+  notesVisible = false;
+  destroyView(view);
+}
+
+// ── Capturas de pantalla ────────────────────────────────────────────────────
+function capturesDir() {
+  return path.join(app.getPath('pictures'), 'Centinela Capturas');
+}
+
+function screenshotName() {
+  const d = new Date();
+  const p2 = n => String(n).padStart(2, '0');
+  return 'Centinela ' + d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()) +
+    ' ' + p2(d.getHours()) + '-' + p2(d.getMinutes()) + '-' + p2(d.getSeconds()) + '.png';
+}
+
+async function captureAppWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) return null;
+  const bounds = mainWindow.getBounds();
+  const display = screen.getDisplayMatching(bounds);
+  const scale = display.scaleFactor || 1;
+
+  const sources = await desktopCapturer.getSources({
+    types: ['window'],
+    thumbnailSize: {
+      width: Math.max(1, Math.round(bounds.width * scale)),
+      height: Math.max(1, Math.round(bounds.height * scale))
+    },
+    fetchWindowIcons: false
+  });
+
+  let id = '';
+  try { id = mainWindow.getMediaSourceId(); } catch (e) {}
+  const source = (id && sources.find(s => s.id === id)) ||
+    sources.find(s => s.name === mainWindow.getTitle()) ||
+    null;
+
+  return source && !source.thumbnail.isEmpty() ? source.thumbnail : null;
+}
+
+async function takeScreenshot() {
+  if (!mainWindow || mainWindow.isDestroyed()) return { ok: false, error: 'sin ventana' };
+
+  let image = null;
+  try { image = await captureAppWindow(); } catch (e) {}
+
+  if (!image) {
+    try {
+      const wc = activeWebContents();
+      if (wc) image = await wc.capturePage();
+    } catch (e) {}
+  }
+
+  if (!image || image.isEmpty()) {
+    dialog.showMessageBox(mainWindow, {
+      type: 'error',
+      title: 'Captura de pantalla',
+      message: 'No se pudo capturar la ventana.',
+      buttons: ['Cerrar']
+    });
+    return { ok: false, error: 'captura vacía' };
+  }
+
+  try {
+    const dir = capturesDir();
+    fs.mkdirSync(dir, { recursive: true });
+    const file = path.join(dir, screenshotName());
+    fs.writeFileSync(file, image.toPNG());
+    clipboard.writeImage(image);
+
+    try {
+      if (Notification.isSupported()) {
+        const toast = new Notification({
+          title: 'Captura guardada',
+          body: path.basename(file) + ' · copiada al portapapeles',
+          silent: true
+        });
+        toast.on('click', () => shell.showItemInFolder(file));
+        toast.show();
+      }
+    } catch (e) {}
+
+    return { ok: true, path: file };
+  } catch (e) {
+    return { ok: false, error: String(e.message || e) };
+  }
+}
+
+function registerNotesIpc() {
+  ipcMain.handle('notes:load', () => readNotesState());
+
+  ipcMain.handle('notes:save', (event, state) => {
+    try { return writeNotesState(state); }
+    catch (e) { return null; }
+  });
+
+  ipcMain.on('notes:save-sync', (event, state) => {
+    try { writeNotesState(state); event.returnValue = true; }
+    catch (e) { event.returnValue = false; }
+  });
+
+  ipcMain.on('notes:open-folder', () => {
+    try {
+      const file = notesFilePath();
+      if (!fs.existsSync(file)) writeNotesState({ notes: [], activeId: null });
+      shell.showItemInFolder(file);
+    } catch (e) {}
+  });
+
+  ipcMain.on('notes:close', () => closeNotes());
+
+  ipcMain.handle('notes:capture', () => takeScreenshot());
+
+  ipcMain.handle('notes:export', async (event, payload) => {
+    const rawTitle = String((payload && payload.title) || 'nota');
+    const safeTitle = rawTitle.replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) || 'nota';
+    const body = String((payload && payload.body) || '');
+    const owner = mainWindow && !mainWindow.isDestroyed() ? mainWindow : null;
+    const options = {
+      title: 'Exportar nota',
+      defaultPath: path.join(app.getPath('documents'), safeTitle + '.txt'),
+      filters: [{ name: 'Texto', extensions: ['txt'] }]
+    };
+
+    let result;
+    try {
+      result = owner
+        ? await dialog.showSaveDialog(owner, options)
+        : await dialog.showSaveDialog(options);
+    } catch (e) {
+      return { ok: false, error: String(e.message || e) };
+    }
+
+    if (result.canceled || !result.filePath) return { ok: false, canceled: true };
+    try {
+      fs.writeFileSync(result.filePath, body, 'utf8');
+      return { ok: true, path: result.filePath };
+    } catch (e) {
+      return { ok: false, error: String(e.message || e) };
+    }
   });
 }
 
@@ -327,6 +593,7 @@ function loadSite(index) {
 
 function goHome() {
   if (!mainWindow || mainWindow.isDestroyed()) return;
+  closeNotes();
   if (pendingView) { destroyView(pendingView); pendingView = null; }
   if (siteView) { destroyView(siteView); siteView = null; }
   currentSite = -1;
@@ -338,6 +605,7 @@ function goHome() {
 
 function navigateTo(index) {
   if (!mainWindow || mainWindow.isDestroyed() || index < 0 || index >= SITES.length) return;
+  closeNotes();
   currentSite = index;
   buildMenu();
   mainWindow.setTitle(`Centinela BETA — Cargando ${SITES[index].name}…`);
@@ -383,9 +651,15 @@ function createMain() {
 
   mainWindow.loadFile(path.join(__dirname, 'home.html'));
 
-  mainWindow.on('resize', () => {
-    if (siteView && !siteView.webContents.isDestroyed()) siteView.setBounds(contentBounds());
-  });
+  const layoutViews = () => {
+    const bounds = contentBounds();
+    if (siteView && !siteView.webContents.isDestroyed()) siteView.setBounds(bounds);
+    if (notesView && notesVisible && !notesView.webContents.isDestroyed()) notesView.setBounds(bounds);
+  };
+
+  mainWindow.on('resize', layoutViews);
+  mainWindow.on('enter-full-screen', layoutViews);
+  mainWindow.on('leave-full-screen', layoutViews);
 
   const reveal = () => {
     if (splashWindow && !splashWindow.isDestroyed()) splashWindow.close();
@@ -407,6 +681,7 @@ function createMain() {
   mainWindow.on('closed', () => {
     destroyView(pendingView); pendingView = null;
     destroyView(siteView); siteView = null;
+    destroyNotesView();
     mainWindow = null;
     if (splashWindow && !splashWindow.isDestroyed()) splashWindow.close();
   });
@@ -415,6 +690,7 @@ function createMain() {
 app.whenReady().then(async () => {
   session.defaultSession.setUserAgent(USER_AGENT, 'en-US,en;q=0.9');
   await initAdblock();
+  registerNotesIpc();
   buildMenu();
   createSplash();
   createMain();
@@ -427,6 +703,10 @@ app.whenReady().then(async () => {
   ipcMain.handle('get-current', () => currentSite);
 
   ipcMain.handle('news:get', () => newsItems);
+
+  ipcMain.on('open-notes', () => openNotes());
+
+  ipcMain.handle('app:capture', () => takeScreenshot());
 
   ipcMain.on('open-external', (event, url) => {
     if (typeof url === 'string' && /^https?:\/\//i.test(url)) shell.openExternal(url);

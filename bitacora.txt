@@ -26,6 +26,11 @@ CARACTERISTICAS PRINCIPALES
 - Bloqueo de anuncios integrado (@cliqz/adblocker-electron)
 - Seguridad: contextIsolation true, nodeIntegration false, sandbox true en vistas de sitio
 - Modal Sobre el programa en Ayuda
+- Anotador de notas (menu Centinela o boton del inicio, Ctrl+N): vista interna de la app
+  (no abre ventana ni saca de pantalla completa), varias notas, autoguardado local y
+  exportacion a .txt
+- Capturas de pantalla (menu Ver o boton Captura, Ctrl+Shift+S): guarda la ventana completa
+  en Imagenes\Centinela Capturas y la copia al portapapeles
 - Indicador Encriptar la Intra-Net con LED y switch funcional
 - Fondo de estrellas animado via canvas 2D
 - Monitoreo de conectividad por plataforma via peticiones HEAD
@@ -90,8 +95,8 @@ TECNOLOGIAS UTILIZADAS
 INSTALADOR GENERADO
 -------------------
 Ruta: dist\Centinela BETA Setup 1.0.0.exe
-Tamano: ~75.4 MB
-Fecha generacion: 26/10/2026 20:00
+Tamano: ~75.4 MB (79.089.386 bytes)
+Fecha generacion: 02/11/2026 14:58
 Comando: npm run dist
 
 VERIFICACIONES
@@ -121,6 +126,19 @@ VERIFICACIONES
   barra del logo (header) y por encima del grid de plataformas.
 - Instancia Docker de Centinela Globe pendiente de arranque (requiere reinicio del equipo
   para activar WSL2 y el motor de Docker Desktop)
+- 02/11/2026: ANOTADOR agregado al menu Centinela (Ctrl+N) y a la cabecera del inicio.
+  Vista interna (notes.html + notes-preload.js) con varias notas, autoguardado en
+  %APPDATA%\centinela-beta\anotador.json, contador de palabras/caracteres, exportacion a
+  .txt, boton "Abrir carpeta" y "Volver" (Esc). No abre ventanas: la app se mantiene en
+  pantalla completa (verificado: 1360x768 antes, durante y despues de abrir el anotador).
+- 02/11/2026: CAPTURAS DE PANTALLA en el menu Ver (Ctrl+Shift+S) y boton "Captura" en el
+  inicio. Captura la ventana completa (incluye la vista activa y el anotador), la guarda
+  en Imagenes\Centinela Capturas como PNG y la copia al portapapeles; notificacion al
+  guardar. Verificado en desarrollo y en el build empaquetado via CDP (2 capturas
+  1360x742 generadas y abiertas). Instalador regenerado.
+- 02/11/2026: README actualizado con capturas de la interfaz en Imagenes\demostracion
+  (inicio.png, anotador.png, splash.png y una captura anterior) y subido a GitHub junto
+  con el codigo del anotador y las capturas.
 
 TAREA PENDIENTE
 ---------------

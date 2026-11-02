@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
+<title>Centinela BETA — Anotador</title>
+<style>
+  :root {
+    --brand-blue: #0052cc;
+    --brand-blue-hover: #0066ff;
+    --brand-blue-light: rgba(0,82,204,0.14);
+    --brand-black: #0d0d0d;
+    --brand-gray: #1a1a1a;
+    --brand-gray-light: #242424;
+    --border-color: #2d2d2d;
+    --text-primary: #ffffff;
+    --text-secondary: #a0a0a0;
+    --text-muted: #6a6a6a;
+    --success: #00b34a;
+    --danger: #cc3333;
+    --transition: 180ms ease;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html,body { height:100%; }
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    color: var(--text-primary);
+    background: radial-gradient(ellipse at top, #0a1428 0%, var(--brand-black) 62%);
+    -webkit-font-smoothing: antialiased;
+    overflow:hidden;
+    display:flex; flex-direction:column;
+  }
+
+  /* ── Barra superior ── */
+  .topbar {
+    display:flex; align-items:center; gap:12px;
+    height:52px; padding:0 16px; flex:none;
+    background: rgba(26,26,26,0.92);
+    border-bottom:1px solid rgba(255,255,255,0.05);
+    backdrop-filter: blur(8px);
+  }
+  .back-btn {
+    display:inline-flex; align-items:center; gap:7px; flex:none;
+    font-family:inherit; font-size:12px; font-weight:600;
+    color: var(--text-secondary); cursor:pointer;
+    padding:7px 12px; border-radius:8px;
+    border:1px solid var(--border-color); background: var(--brand-gray-light);
+    transition: var(--transition);
+  }
+  .back-btn:hover { border-color: var(--brand-blue); color:#fff; background: var(--brand-blue-light); }
+  .back-btn svg { width:14px; height:14px; }
+  .topbar-title {
+    flex:1; text-align:center; font-size:11.5px; letter-spacing:1.2px;
+    text-transform:uppercase; color: var(--text-muted);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .topbar-actions { display:flex; gap:8px; flex:none; }
+  .topbar .ghost-btn {
+    width:auto; display:inline-flex; align-items:center; gap:7px;
+    padding:7px 12px; font-weight:600;
+  }
+  .topbar .ghost-btn svg { width:14px; height:14px; }
+
+  .layout { display:flex; flex:1; min-height:0; }
+
+  /* ── Barra lateral ── */
+  .sidebar {
+    width:224px; flex:none; display:flex; flex-direction:column;
+    background: rgba(26,26,26,0.85);
+    border-right:1px solid var(--border-color);
+    backdrop-filter: blur(8px);
+  }
+  .side-head {
+    display:flex; align-items:center; gap:10px;
+    padding:16px 14px 12px;
+    border-bottom:1px solid rgba(255,255,255,0.05);
+  }
+  .side-brand { display:flex; flex-direction:column; min-width:0; flex:1; }
+  .side-title { font-size:12.5px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; }
+  .side-count { font-size:10.5px; color: var(--text-muted); margin-top:2px; }
+
+  .icon-btn {
+    width:30px; height:30px; flex:none; display:grid; place-items:center;
+    border:1px solid var(--border-color); border-radius:8px;
+    background: var(--brand-gray-light); color: var(--text-secondary);
+    cursor:pointer; transition: var(--transition);
+  }
+  .icon-btn:hover { border-color: var(--brand-blue); color:#fff; background: var(--brand-blue-light); }
+  .icon-btn:active { transform: translateY(1px); }
+  .icon-btn svg { width:15px; height:15px; display:block; }
+  .icon-btn.danger:hover { border-color: var(--danger); background: rgba(204,0,0,0.14); color:#ff6b6b; }
+
+  .note-list { flex:1; overflow-y:auto; padding:10px; }
+  .note-item {
+    display:flex; flex-direction:column; gap:3px; width:100%; text-align:left;
+    padding:9px 11px; margin-bottom:6px; border-radius:8px;
+    border:1px solid transparent; background:transparent; color: var(--text-secondary);
+    cursor:pointer; transition: var(--transition); font-family:inherit;
+  }
+  .note-item:hover { background: var(--brand-gray-light); color: var(--text-primary); }
+  .note-item.active { background: var(--brand-blue-light); border-color: var(--brand-blue); color:#fff; }
+  .note-name { font-size:12.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .note-date { font-size:10px; color: var(--text-muted); }
+
+  .side-foot { padding:10px 14px; border-top:1px solid rgba(255,255,255,0.05); }
+  .ghost-btn {
+    width:100%; padding:7px 10px; border-radius:8px; font-family:inherit;
+    font-size:11.5px; color: var(--text-secondary); cursor:pointer;
+    border:1px solid var(--border-color); background:transparent; transition: var(--transition);
+  }
+  .ghost-btn:hover { border-color: var(--brand-blue); color:#fff; }
+
+  /* ── Editor ── */
+  .editor { flex:1; display:flex; flex-direction:column; min-width:0; padding:18px 22px 14px; }
+  .editor-head {
+    display:flex; align-items:center; gap:10px;
+    padding-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.05);
+  }
+  .title-input {
+    flex:1; min-width:0; background:transparent; border:none; outline:none;
+    color: var(--text-primary); font-family:inherit; font-size:19px;
+    font-weight:600; letter-spacing:0.2px; padding:4px 0;
+  }
+  .title-input::placeholder { color: var(--text-muted); font-weight:500; }
+  .editor-tools { display:flex; gap:6px; flex:none; }
+
+  .body-input {
+    flex:1; width:100%; margin-top:14px; resize:none; outline:none;
+    background:transparent; border:none; color:#e8e8e8;
+    font-family:"Segoe UI", system-ui, sans-serif; font-size:14px; line-height:1.75;
+    padding:0 2px;
+  }
+  .body-input::placeholder { color: var(--text-muted); }
+
+  .body-input::-webkit-scrollbar,
+  .note-list::-webkit-scrollbar { width:9px; }
+  .body-input::-webkit-scrollbar-thumb,
+  .note-list::-webkit-scrollbar-thumb { background:#333; border-radius:99px; }
+  .body-input::-webkit-scrollbar-thumb:hover,
+  .note-list::-webkit-scrollbar-thumb:hover { background:#444; }
+
+  .editor-foot {
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding-top:10px; border-top:1px solid rgba(255,255,255,0.05);
+    font-size:11px; color: var(--text-muted);
+  }
+  .status {
+    display:inline-flex; align-items:center; gap:6px; min-width:0;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .status::before {
+    content:""; width:6px; height:6px; border-radius:50%;
+    background: var(--success); flex:none;
+  }
+  .status.saving::before { background: var(--brand-blue-hover); animation: pulse 1s ease-in-out infinite; }
+  .status.error { color:#ff8080; }
+  .status.error::before { background: var(--danger); }
+  @keyframes pulse { 0%,100% { opacity:0.35; } 50% { opacity:1; } }
+  .counts { flex:none; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <button class="back-btn" id="back-btn" title="Volver a la app (Esc)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M19 12H5"/><path d="m12 19-7-7 7-7"/>
+      </svg>
+      <span>Volver</span>
+    </button>
+    <span class="topbar-title">Anotador · Centinela BETA</span>
+    <div class="topbar-actions">
+      <button class="ghost-btn" id="capture-btn" title="Capturar la ventana (Ctrl+Shift+S)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M14.5 4h-5L7 7H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1h-3l-2.5-3Z"/>
+          <circle cx="12" cy="13" r="3.5"/>
+        </svg>
+        <span>Captura</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="side-head">
+        <div class="side-brand">
+          <span class="side-title">Notas</span>
+          <span class="side-count" id="count">0 notas</span>
+        </div>
+        <button class="icon-btn" id="new-note" title="Nueva nota (Ctrl+Shift+N)" aria-label="Nueva nota">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+        </button>
+      </div>
+      <div class="note-list" id="note-list"></div>
+      <div class="side-foot">
+        <button class="ghost-btn" id="open-folder" title="Abrir la carpeta donde se guardan las notas">Abrir carpeta</button>
+      </div>
+    </aside>
+
+    <section class="editor">
+      <div class="editor-head">
+        <input id="note-title" class="title-input" type="text" placeholder="Título de la nota" maxlength="200" spellcheck="false">
+        <div class="editor-tools">
+          <button class="icon-btn" id="export-note" title="Exportar como .txt" aria-label="Exportar nota">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/>
+            </svg>
+          </button>
+          <button class="icon-btn danger" id="delete-note" title="Eliminar nota" aria-label="Eliminar nota">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/><path d="M10 11v5M14 11v5"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <textarea id="note-body" class="body-input" placeholder="Escribí tu nota…" spellcheck="true"></textarea>
+
+      <div class="editor-foot">
+        <span id="status" class="status">Listo</span>
+        <span id="counts" class="counts">0 palabras · 0 caracteres</span>
+      </div>
+    </section>
+  </div>
+
+<script>
+  const api = window.anotador;
+
+  const listEl = document.getElementById('note-list');
+  const countEl = document.getElementById('count');
+  const titleEl = document.getElementById('note-title');
+  const bodyEl = document.getElementById('note-body');
+  const statusEl = document.getElementById('status');
+  const countsEl = document.getElementById('counts');
+
+  let state = { notes: [], activeId: null };
+  let saveTimer = null;
+  let lastSaved = 0;
+
+  function uid() {
+    try { return crypto.randomUUID(); }
+    catch (e) { return 'n' + Date.now() + Math.random().toString(16).slice(2); }
+  }
+
+  function makeNote() {
+    const now = Date.now();
+    return { id: uid(), title: '', body: '', created: now, updated: now };
+  }
+
+  function activeNote() {
+    return state.notes.find(n => n.id === state.activeId) || null;
+  }
+
+  function noteName(note) {
+    const line = String(note.title || '').trim() || String(note.body || '').split('\n')[0].trim();
+    return line || 'Nota sin título';
+  }
+
+  function two(n) { return String(n).padStart(2, '0'); }
+
+  function formatDate(ts) {
+    const d = new Date(ts || Date.now());
+    const now = new Date();
+    if (d.toDateString() === now.toDateString()) return two(d.getHours()) + ':' + two(d.getMinutes());
+    return two(d.getDate()) + '/' + two(d.getMonth() + 1) + '/' + String(d.getFullYear()).slice(2);
+  }
+
+  function timeNow() {
+    const d = new Date();
+    return two(d.getHours()) + ':' + two(d.getMinutes()) + ':' + two(d.getSeconds());
+  }
+
+  function setStatus(text, kind) {
+    statusEl.textContent = text;
+    statusEl.className = 'status' + (kind ? ' ' + kind : '');
+  }
+
+  function updateCounts() {
+    const body = bodyEl.value;
+    const words = body.trim() ? body.trim().split(/\s+/).length : 0;
+    countsEl.textContent = words + (words === 1 ? ' palabra' : ' palabras') + ' · ' + body.length + (body.length === 1 ? ' carácter' : ' caracteres');
+  }
+
+  function renderList() {
+    listEl.innerHTML = '';
+    state.notes.forEach(note => {
+      const btn = document.createElement('button');
+      btn.className = 'note-item' + (note.id === state.activeId ? ' active' : '');
+      btn.type = 'button';
+
+      const name = document.createElement('span');
+      name.className = 'note-name';
+      name.textContent = noteName(note);
+
+      const date = document.createElement('span');
+      date.className = 'note-date';
+      date.textContent = formatDate(note.updated);
+
+      btn.append(name, date);
+      btn.addEventListener('click', () => selectNote(note.id));
+      listEl.appendChild(btn);
+    });
+    countEl.textContent = state.notes.length + (state.notes.length === 1 ? ' nota' : ' notas');
+  }
+
+  function updateActiveItem() {
+    const note = activeNote();
+    const item = listEl.querySelector('.note-item.active');
+    if (!note || !item) return;
+    item.querySelector('.note-name').textContent = noteName(note);
+    item.querySelector('.note-date').textContent = formatDate(note.updated);
+  }
+
+  function loadEditor() {
+    const note = activeNote();
+    titleEl.value = note ? note.title : '';
+    bodyEl.value = note ? note.body : '';
+    titleEl.disabled = !note;
+    bodyEl.disabled = !note;
+    document.getElementById('delete-note').disabled = !note;
+    document.getElementById('export-note').disabled = !note;
+    updateCounts();
+  }
+
+  function renderAll() {
+    renderList();
+    loadEditor();
+  }
+
+  async function saveNow(silent) {
+    if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+    if (!silent) setStatus('Guardando…', 'saving');
+    try {
+      const saved = await api.save(state);
+      if (!saved) throw new Error('sin respuesta');
+      lastSaved = Date.now();
+      setStatus('Guardado · ' + timeNow());
+      return true;
+    } catch (e) {
+      setStatus('No se pudo guardar', 'error');
+      return false;
+    }
+  }
+
+  function scheduleSave() {
+    setStatus('Guardando…', 'saving');
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => saveNow(true), 500);
+  }
+
+  async function selectNote(id) {
+    if (id === state.activeId) return;
+    await saveNow(true);
+    state.activeId = id;
+    renderAll();
+    bodyEl.focus();
+  }
+
+  function createNote() {
+    const note = makeNote();
+    state.notes.unshift(note);
+    state.activeId = note.id;
+    renderAll();
+    titleEl.focus();
+    saveNow(true);
+  }
+
+  async function deleteNote() {
+    const note = activeNote();
+    if (!note) return;
+    if (!window.confirm('¿Eliminar la nota "' + noteName(note) + '"?')) return;
+    state.notes = state.notes.filter(n => n.id !== note.id);
+    if (!state.notes.length) state.notes.push(makeNote());
+    state.activeId = state.notes[0].id;
+    renderAll();
+    await saveNow(true);
+  }
+
+  async function exportNote() {
+    const note = activeNote();
+    if (!note) return;
+    setStatus('Exportando…', 'saving');
+    try {
+      const res = await api.exportNote({ title: noteName(note), body: note.body });
+      if (res && res.ok) setStatus('Exportado · ' + res.path);
+      else if (res && res.canceled) setStatus('Exportación cancelada');
+      else setStatus('No se pudo exportar', 'error');
+    } catch (e) {
+      setStatus('No se pudo exportar', 'error');
+    }
+  }
+
+  function closeNotes() {
+    if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+    try { api.saveSync(state); } catch (e) {}
+    api.close();
+  }
+
+  async function captureNow() {
+    setStatus('Capturando…', 'saving');
+    try {
+      const res = await api.capture();
+      if (res && res.ok) setStatus('Captura guardada · ' + res.path);
+      else setStatus('No se pudo capturar', 'error');
+    } catch (e) {
+      setStatus('No se pudo capturar', 'error');
+    }
+  }
+
+  titleEl.addEventListener('input', () => {
+    const note = activeNote();
+    if (!note) return;
+    note.title = titleEl.value;
+    note.updated = Date.now();
+    updateActiveItem();
+    scheduleSave();
+  });
+
+  bodyEl.addEventListener('input', () => {
+    const note = activeNote();
+    if (!note) return;
+    note.body = bodyEl.value;
+    note.updated = Date.now();
+    updateCounts();
+    updateActiveItem();
+    scheduleSave();
+  });
+
+  document.getElementById('new-note').addEventListener('click', createNote);
+  document.getElementById('delete-note').addEventListener('click', deleteNote);
+  document.getElementById('export-note').addEventListener('click', exportNote);
+  document.getElementById('open-folder').addEventListener('click', () => api.openFolder());
+  document.getElementById('back-btn').addEventListener('click', closeNotes);
+  document.getElementById('capture-btn').addEventListener('click', captureNow);
+
+  document.addEventListener('keydown', (e) => {
+    const mod = e.ctrlKey || e.metaKey;
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      closeNotes();
+    } else if (mod && !e.shiftKey && e.key.toLowerCase() === 's') {
+      e.preventDefault();
+      saveNow();
+    } else if (mod && e.shiftKey && e.key.toLowerCase() === 'n') {
+      e.preventDefault();
+      createNote();
+    }
+  });
+
+  window.addEventListener('beforeunload', () => {
+    if (saveTimer) clearTimeout(saveTimer);
+    try { api.saveSync(state); } catch (e) {}
+  });
+
+  async function init() {
+    try {
+      const loaded = await api.load();
+      if (loaded && Array.isArray(loaded.notes)) state = loaded;
+    } catch (e) {}
+
+    if (!Array.isArray(state.notes) || !state.notes.length) state.notes = [makeNote()];
+
+    state.notes.sort((a, b) => (b.updated || 0) - (a.updated || 0));
+    if (!state.notes.some(n => n.id === state.activeId)) state.activeId = state.notes[0].id;
+    renderAll();
+    bodyEl.focus();
+    setStatus('Listo · ' + state.notes.length + (state.notes.length === 1 ? ' nota' : ' notas'));
+  }
+
+  init();
+</script>
+</body>
+</html>
