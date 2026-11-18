@@ -99,9 +99,10 @@ TECNOLOGIAS UTILIZADAS
 INSTALADOR GENERADO
 -------------------
 Ruta: dist\Centinela BETA Setup 1.0.0.exe
-Tamano: ~75.4 MB (79.089.386 bytes)
-Fecha generacion: 02/11/2026 14:58
+Tamano: ~75.4 MB (79.091.899 bytes)
+Fecha generacion: 18/11/2026 19:47
 Comando: npm run dist
+Assets del release v1.0.0 actualizados en GitHub (exe + blockmap + latest.yml).
 
 VERIFICACIONES
 --------------
@@ -186,6 +187,11 @@ Verificaciones (desarrollo, via CDP):
     botones del pie y ruta de datos correctos
   - Instalador regenerado con npm run dist y testeado en el build empaquetado
     (win-unpacked): anotador, persistencia y exportacion a .txt operativos
+  - PRUEBA CRITICA de reinstalacion: se borro por completo %APPDATA%\centinela-beta
+    (simulando lo que hace el desinstalador NSIS) y se relanzo el build empaquetado.
+    Las notas SIGUIERON INTACTAS: se recargaron desde %APPDATA%\Centinela\notas
+    (anotador.json, notas.txt y copias\). Objetivo "no perder notas al reinstalar"
+    verificado en el ejecutable final.
   - README actualizado (nueva seccion "Anotador: datos y copias de seguridad")
 
 TAREA PENDIENTE
