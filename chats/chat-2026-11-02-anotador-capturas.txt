@@ -1,0 +1,102 @@
+CHAT EXPORT - CENTINELA BETA
+Fecha: 02/11/2026
+Proyecto: Estalingradocorp-CentinelaEC
+Repositorio: https://github.com/nicotips27/Estalingradocorp-CentinelaEC
+
+================================================================================
+RESUMEN DE LA SESIÓN
+================================================================================
+
+TAREA INICIAL:
+- Usuario pidió "agregar un anotador a las opciones y actualizar el instalador"
+
+LO QUE SE HIZO:
+1. Se agregó el ANOTADOR como vista interna (no ventana aparte) para no romper
+   la pantalla completa. Accesos: menú Centinela → Anotador (Ctrl+N) y botón
+   "Anotador" en la cabecera del inicio.
+
+2. Se agregaron CAPTURAS DE PANTALLA integradas:
+   - Ctrl+Shift+S
+   - Menú Ver → Captura de pantalla
+   - Botón "Captura" en la cabecera del inicio
+   - Guarda en Imágenes\Centinela Capturas y copia al portapapeles
+   - Notificación al guardar
+
+3. Se actualizó el README.md con:
+   - Sección "Capturas de pantalla" con 4 imágenes
+   - Renombró "diez plataformas" → "nueve plataformas"
+   - Carpeta Imagenes/demostracion/ con capturas reales
+
+4. Se regeneró el instalador: Centinela BETA Setup 1.0.0.exe (~75.4 MB)
+
+5. Se subió todo a GitHub:
+   - Commit: 15782b8
+   - Release v1.0.0 con el instalador como asset
+
+ARCHIVOS MODIFICADOS/CREADOS:
+- main.js: +290 líneas (anotador vista interna, capturas, menú actualizado)
+- preload.js: +2 líneas (exponer capture)
+- notes-preload.js: NUEVO (puente seguro anotador: load/save/close/capture)
+- notes.html: NUEVO (interfaz anotador con topbar, Volver, Captura)
+- home.html: +33 líneas (botón Captura, estilos tool-btn)
+- package.json: +3 archivos empaquetados
+- README.md: +65 líneas (capturas, corrección 9 plataformas)
+- bitacora.txt: +22 líneas (registro de cambios)
+
+VERIFICACIONES REALIZADAS:
+- Sintaxis JS: node --check main.js preload.js notes-preload.js + inline scripts
+- CDP tests en desarrollo (puerto 9333, 9334, 9335, 9336, 9337, 9338, 9339):
+  * Apertura anotador desde home
+  * Escritura y autoguardado de nota
+  * Exportación .txt
+  * Captura desde anotador (1360x742)
+  * Captura desde home (1360x742)
+  * Pantalla completa mantenida (1360x768 antes/durante/después)
+- CDP tests en build empaquetado (dist/win-unpacked):
+  * Mismos tests, mismo resultado
+- asar verification: todos los archivos nuevos presentes en app.asar
+- GitHub release creado: https://github.com/nicotips27/Estalingradocorp-CentinelaEC/releases/tag/v1.0.0
+- Imágenes raw accesibles: HTTP 200 en todas las 4 capturas
+
+INSTALADOR FINAL:
+- dist/Centinela BETA Setup 1.0.0.exe
+- 79.089.386 bytes
+- Fecha: 02/11/2026 14:58
+- Publicado en release GitHub
+
+================================================================================
+COMANDOS CLAVE EJECUTADOS
+================================================================================
+
+npm run dist (2 veces - regeneró instalador)
+
+Tests CDP:
+- node centinela-notes-test.mjs (puerto 9333, 9335, 9338)
+- node centinela-notes-shot.js (puerto 9334)
+- node centinela-capture-test.js (puerto 9336, 9338)
+- node centinela-fullscreen-test.js (puerto 9337)
+- node centinela-readme-shots.js (puerto 9339 - generó capturas para README)
+
+Git:
+- git add -A
+- git commit -m "feat: anotador en vista interna, capturas de pantalla y galeria en README"
+- git push origin main
+- gh release create v1.0.0 dist/Centinela BETA Setup 1.0.0.exe ...
+
+================================================================================
+ESTADO ACTUAL
+================================================================================
+
+✅ Anotador funcional como vista interna (no rompe fullscreen)
+✅ Capturas de pantalla funcionales (portapapeles + carpeta)
+✅ README con capturas reales
+✅ Instalador regenerado y publicado en release
+✅ Código subido a GitHub (main branch)
+
+Tarea pendiente original (bitácora):
+- "SE DEBE INTEGRAR UN AGENTE IA LOCAL PARA QUE TRABAJE DENTRO DEL PROGRAMA"
+  (Ollama, LM Studio, Open WebUI, LocalAI, AnythingLLM, Jan, etc.)
+
+================================================================================
+FIN DEL EXPORT
+================================================================================

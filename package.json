@@ -60,7 +60,8 @@
       "createStartMenuShortcut": true,
       "shortcutName": "Centinela BETA",
       "installerIcon": "icon.ico",
-      "uninstallerIcon": "icon.ico"
+      "uninstallerIcon": "icon.ico",
+      "deleteAppDataOnUninstall": false
     }
   },
   "devDependencies": {

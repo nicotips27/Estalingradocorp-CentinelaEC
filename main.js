@@ -284,13 +284,37 @@ function showAbout() {
   });
 }
 
-// ── Anotador ────────────────────────────────────────────────────────────────
+// ── Anotador: almacenamiento, copias y utilidades ───────────────────────────
 const NOTES_MAX_NOTES = 500;
 const NOTES_MAX_TITLE = 200;
 const NOTES_MAX_BODY = 200000;
+const NOTES_MAX_BACKUPS = 20;
+const NOTES_BACKUP_INTERVAL_MS = 60 * 1000;
 
-function notesFilePath() {
-  return path.join(app.getPath('userData'), 'anotador.json');
+let lastBackupAt = 0;
+
+// Las notas se guardan FUERA de la carpeta de datos de Electron
+// (%APPDATA%\centinela-beta) para que reinstalar o desinstalar la app
+// NO borre el contenido del anotador.
+function notesDataDir() {
+  return path.join(app.getPath('appData'), 'Centinela', 'notas');
+}
+function notesFilePath() { return path.join(notesDataDir(), 'anotador.json'); }
+function notesTxtPath() { return path.join(notesDataDir(), 'notas.txt'); }
+function notesBackupDir() { return path.join(notesDataDir(), 'copias'); }
+function legacyNotesFilePath() { return path.join(app.getPath('userData'), 'anotador.json'); }
+
+function ensureNotesDir() {
+  try {
+    fs.mkdirSync(notesDataDir(), { recursive: true });
+    fs.mkdirSync(notesBackupDir(), { recursive: true });
+  } catch (e) {}
+}
+
+function stampForFile(d) {
+  const p2 = n => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()) +
+    '_' + p2(d.getHours()) + '-' + p2(d.getMinutes()) + '-' + p2(d.getSeconds());
 }
 
 function sanitizeNotesState(input) {
@@ -309,6 +333,7 @@ function sanitizeNotesState(input) {
       id,
       title: String(raw.title || '').slice(0, NOTES_MAX_TITLE),
       body: String(raw.body || '').slice(0, NOTES_MAX_BODY),
+      pinned: Boolean(raw.pinned),
       created: Number(raw.created) || now,
       updated: Number(raw.updated) || now
     });
@@ -320,23 +345,135 @@ function sanitizeNotesState(input) {
   return { notes, activeId };
 }
 
-function readNotesState() {
+function noteDisplayTitle(note) {
+  const line = String(note.title || '').trim() || String(note.body || '').split('\n')[0].trim();
+  return line || 'Nota sin titulo';
+}
+
+function notesToTxt(state) {
+  const lines = [];
+  lines.push('CENTINELA BETA - ANOTADOR');
+  lines.push('Exportado: ' + new Date().toLocaleString('es-ES'));
+  lines.push('Notas: ' + state.notes.length);
+  lines.push('');
+  state.notes.forEach((note, i) => {
+    lines.push('==============================================================');
+    lines.push('[' + (i + 1) + '] ' + noteDisplayTitle(note) + (note.pinned ? '  [FIJADA]' : ''));
+    lines.push(new Date(note.updated || Date.now()).toLocaleString('es-ES'));
+    lines.push('--------------------------------------------------------------');
+    lines.push(note.body || '');
+    lines.push('');
+  });
+  return lines.join('\r\n');
+}
+
+function writeNotesTxt(state) {
+  try { fs.writeFileSync(notesTxtPath(), notesToTxt(state), 'utf8'); } catch (e) {}
+}
+
+function listBackups() {
   try {
-    const raw = fs.readFileSync(notesFilePath(), 'utf8');
+    return fs.readdirSync(notesBackupDir())
+      .filter(f => f.endsWith('.json'))
+      .sort()
+      .reverse()
+      .map(f => {
+        const full = path.join(notesBackupDir(), f);
+        const st = fs.statSync(full);
+        return { name: f, path: full, size: st.size, mtime: st.mtimeMs };
+      });
+  } catch (e) { return []; }
+}
+
+function pruneBackups() {
+  const files = listBackups();
+  for (let i = NOTES_MAX_BACKUPS; i < files.length; i++) {
+    try { fs.unlinkSync(files[i].path); } catch (e) {}
+  }
+}
+
+function createBackup(state) {
+  const now = Date.now();
+  if (now - lastBackupAt < NOTES_BACKUP_INTERVAL_MS) return;
+  lastBackupAt = now;
+  try {
+    ensureNotesDir();
+    const file = path.join(notesBackupDir(), 'anotador-' + stampForFile(new Date(now)) + '.json');
+    fs.writeFileSync(file, JSON.stringify(state, null, 2), 'utf8');
+    pruneBackups();
+  } catch (e) {}
+}
+
+function restoreLatestBackup() {
+  for (const backup of listBackups()) {
+    try {
+      const state = sanitizeNotesState(JSON.parse(fs.readFileSync(backup.path, 'utf8')));
+      if (state.notes.length) {
+        writeNotesState(state);
+        return state;
+      }
+    } catch (e) {}
+  }
+  return null;
+}
+
+function readNotesState() {
+  ensureNotesDir();
+  let raw = null;
+  try { raw = fs.readFileSync(notesFilePath(), 'utf8'); } catch (e) {}
+
+  if (!raw) {
+    // Migracion desde la ubicacion anterior (%APPDATA%\centinela-beta\anotador.json)
+    try {
+      const legacyRaw = fs.readFileSync(legacyNotesFilePath(), 'utf8');
+      const migrated = sanitizeNotesState(JSON.parse(legacyRaw));
+      if (migrated.notes.length) {
+        writeNotesState(migrated);
+        try {
+          fs.copyFileSync(legacyNotesFilePath(),
+            path.join(notesBackupDir(), 'migracion-' + stampForFile(new Date()) + '.json'));
+        } catch (e) {}
+        return migrated;
+      }
+    } catch (e) {}
+    return { notes: [], activeId: null };
+  }
+
+  try {
     const state = sanitizeNotesState(JSON.parse(raw));
     if (state.notes.length) return state;
-  } catch (e) {}
+  } catch (e) {
+    const restored = restoreLatestBackup();
+    if (restored) return restored;
+  }
   return { notes: [], activeId: null };
 }
 
 function writeNotesState(input) {
   const state = sanitizeNotesState(input);
+  ensureNotesDir();
   const file = notesFilePath();
-  fs.mkdirSync(path.dirname(file), { recursive: true });
   const tmp = file + '.tmp';
   fs.writeFileSync(tmp, JSON.stringify(state, null, 2), 'utf8');
   fs.renameSync(tmp, file);
+  writeNotesTxt(state);
+  createBackup(state);
   return state;
+}
+
+function mergeNotesStates(current, incoming) {
+  const base = sanitizeNotesState(current);
+  const add = sanitizeNotesState(incoming);
+  const known = new Set(base.notes.map(n => n.id));
+  let added = 0;
+  for (const note of add.notes) {
+    if (known.has(note.id)) continue;
+    base.notes.unshift(note);
+    known.add(note.id);
+    added++;
+  }
+  base.notes = base.notes.slice(0, NOTES_MAX_NOTES);
+  return { state: base, added };
 }
 
 // ── Anotador (vista interna) ────────────────────────────────────────────────
@@ -486,10 +623,89 @@ function registerNotesIpc() {
 
   ipcMain.on('notes:open-folder', () => {
     try {
-      const file = notesFilePath();
-      if (!fs.existsSync(file)) writeNotesState({ notes: [], activeId: null });
-      shell.showItemInFolder(file);
+      ensureNotesDir();
+      if (!fs.existsSync(notesFilePath())) writeNotesState({ notes: [], activeId: null });
+      shell.openPath(notesDataDir());
     } catch (e) {}
+  });
+
+  ipcMain.handle('notes:path', () => notesDataDir());
+
+  ipcMain.handle('notes:backups', () => listBackups());
+
+  ipcMain.handle('notes:export-all', async () => {
+    const state = readNotesState();
+    const content = notesToTxt(state);
+    const owner = mainWindow && !mainWindow.isDestroyed() ? mainWindow : null;
+    const options = {
+      title: 'Exportar todas las notas',
+      defaultPath: path.join(app.getPath('documents'), 'Centinela-anotador-' + stampForFile(new Date()) + '.txt'),
+      filters: [{ name: 'Texto', extensions: ['txt'] }]
+    };
+
+    let result;
+    try {
+      result = owner
+        ? await dialog.showSaveDialog(owner, options)
+        : await dialog.showSaveDialog(options);
+    } catch (e) {
+      return { ok: false, error: String(e.message || e) };
+    }
+
+    if (result.canceled || !result.filePath) return { ok: false, canceled: true };
+    try {
+      fs.writeFileSync(result.filePath, content, 'utf8');
+      return { ok: true, path: result.filePath, count: state.notes.length };
+    } catch (e) {
+      return { ok: false, error: String(e.message || e) };
+    }
+  });
+
+  ipcMain.handle('notes:import', async () => {
+    const owner = mainWindow && !mainWindow.isDestroyed() ? mainWindow : null;
+    const options = {
+      title: 'Importar copia de seguridad',
+      defaultPath: notesDataDir(),
+      filters: [
+        { name: 'Copia de Centinela', extensions: ['json'] },
+        { name: 'Todos los archivos', extensions: ['*'] }
+      ]
+    };
+
+    let result;
+    try {
+      result = owner
+        ? await dialog.showOpenDialog(owner, options)
+        : await dialog.showOpenDialog(options);
+    } catch (e) {
+      return { ok: false, error: String(e.message || e) };
+    }
+
+    if (result.canceled || !result.filePaths.length) return { ok: false, canceled: true };
+
+    try {
+      const incoming = sanitizeNotesState(JSON.parse(fs.readFileSync(result.filePaths[0], 'utf8')));
+      if (!incoming.notes.length) return { ok: false, error: 'El archivo no contiene notas' };
+      const merged = mergeNotesStates(readNotesState(), incoming);
+      writeNotesState(merged.state);
+      return { ok: true, added: merged.added, total: merged.state.notes.length, path: result.filePaths[0] };
+    } catch (e) {
+      return { ok: false, error: 'No se pudo leer la copia de seguridad' };
+    }
+  });
+
+  ipcMain.handle('notes:restore', async (event, name) => {
+    const safe = String(name || '').replace(/[\\/]/g, '');
+    if (!safe.endsWith('.json')) return { ok: false, error: 'Copia invalida' };
+    const file = path.join(notesBackupDir(), safe);
+    try {
+      const state = sanitizeNotesState(JSON.parse(fs.readFileSync(file, 'utf8')));
+      if (!state.notes.length) return { ok: false, error: 'La copia esta vacia' };
+      writeNotesState(state);
+      return { ok: true, state, path: file, count: state.notes.length };
+    } catch (e) {
+      return { ok: false, error: 'No se pudo restaurar la copia' };
+    }
   });
 
   ipcMain.on('notes:close', () => closeNotes());

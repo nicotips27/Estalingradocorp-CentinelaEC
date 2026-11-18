@@ -27,8 +27,12 @@ CARACTERISTICAS PRINCIPALES
 - Seguridad: contextIsolation true, nodeIntegration false, sandbox true en vistas de sitio
 - Modal Sobre el programa en Ayuda
 - Anotador de notas (menu Centinela o boton del inicio, Ctrl+N): vista interna de la app
-  (no abre ventana ni saca de pantalla completa), varias notas, autoguardado local y
-  exportacion a .txt
+  (no abre ventana ni saca de pantalla completa), varias notas, autoguardado local,
+  buscador, notas fijadas, exportacion a .txt (individual y masiva), importacion de
+  copias y restauracion
+- Las notas se guardan FUERA de la carpeta de datos de Electron, en %APPDATA%\Centinela\notas
+  (anotador.json + espejo notas.txt + copias\), para que NO se pierdan al reinstalar
+  (NSIS borra %APPDATA%\centinela-beta por defecto: deleteAppDataOnUninstall = false)
 - Capturas de pantalla (menu Ver o boton Captura, Ctrl+Shift+S): guarda la ventana completa
   en Imagenes\Centinela Capturas y la copia al portapapeles
 - Indicador Encriptar la Intra-Net con LED y switch funcional
@@ -139,6 +143,50 @@ VERIFICACIONES
 - 02/11/2026: README actualizado con capturas de la interfaz en Imagenes\demostracion
   (inicio.png, anotador.png, splash.png y una captura anterior) y subido a GitHub junto
   con el codigo del anotador y las capturas.
+
+18/11/2026 - ANOTADOR V2: MAS FUNCIONES Y DATOS A SALVO DE REINSTALACION
+------------------------------------------------------------------------
+Problema detectado: electron-builder/NSIS borra la carpeta de datos de Electron
+(%APPDATA%\centinela-beta) al desinstalar, con lo cual las notas se perdian en cada
+reinstalacion de Centinela BETA.
+
+Solucion aplicada (doble barrera):
+  1) Las notas se guardan FUERA de esa carpeta, en %APPDATA%\Centinela\notas\:
+       - anotador.json   -> archivo principal (JSON)
+       - notas.txt       -> espejo legible en texto plano, regenerado en cada guardado
+       - copias\         -> copias de seguridad automaticas (20 ultimas, 1 por minuto)
+  2) package.json / build.nsis.deleteAppDataOnUninstall = false (el desinstalador
+     ya no borra los datos de la app)
+
+Migracion y proteccion:
+  - Migracion transparente desde %APPDATA%\centinela-beta\anotador.json; el archivo
+    viejo queda respaldado en copias\migracion-*.json
+  - Escritura atomica (archivo .tmp + rename) para evitar JSON corrupto
+  - Autoguardado con debounce de 500 ms y guardado sincronico al cerrar (beforeunload)
+  - Restauracion automatica desde la ultima copia valida si el JSON queda vacio o corrupto
+  - Importar copia (.json, fusiona sin pisar) y Restaurar copia (ultima automatica)
+
+Funciones nuevas del anotador:
+  - Buscador de notas (Ctrl+F) con estado "Sin resultados"
+  - Notas fijadas (pin): aparecen siempre primero, con marca [FIJADA] en el .txt
+  - Exportar TODAS las notas a .txt (Ctrl+Shift+E) + exportar una nota individual
+  - Importar copia de seguridad y Restaurar copia (botones del pie)
+  - Abrir carpeta de datos y ruta visible en el pie del anotador
+  - Contador de palabras/caracteres (ya existente) y atajo Ctrl+Shift+N para nueva nota
+
+Verificaciones (desarrollo, via CDP):
+  - Migracion desde la ubicacion vieja: OK (nota "Nota migrada" visible y persistida)
+  - dataPath() = %APPDATA%\Centinela\notas; JSON, notas.txt y copias\ escritos
+  - Pin reordena la lista (la nota fijada queda primera) y queda persistido en el JSON
+  - Buscador: filtra 1/2 notas y muestra "Sin resultados" sin coincidencias
+  - Segunda nota creada y persistida (2 notas en el JSON, presentes en notas.txt)
+  - node --check OK en main.js, preload.js, notes-preload.js y el script inline de
+    notes.html; package.json valido
+  - Verificacion visual del UI v2 (captura notes-v2.png): buscador, pin, contador,
+    botones del pie y ruta de datos correctos
+  - Instalador regenerado con npm run dist y testeado en el build empaquetado
+    (win-unpacked): anotador, persistencia y exportacion a .txt operativos
+  - README actualizado (nueva seccion "Anotador: datos y copias de seguridad")
 
 TAREA PENDIENTE
 ---------------

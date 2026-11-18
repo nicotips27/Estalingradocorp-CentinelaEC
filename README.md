@@ -9,13 +9,14 @@ App de escritorio para Windows que abre **nueve plataformas de monitoreo y datos
 1. [Descripción](#descripción)
 2. [Capturas de pantalla](#capturas-de-pantalla)
 3. [Características](#características)
-4. [Plataformas](#plataformas)
-5. [Estructura del proyecto](#estructura-del-proyecto)
-6. [Requisitos](#requisitos)
-7. [Puesta en marcha (desarrollo)](#puesta-en-marcha-desarrollo)
-8. [Generar el instalador](#generar-el-instalador)
-9. [Distribución](#distribución)
-10. [Solución de problemas](#solución-de-problemas)
+4. [Anotador: datos y copias de seguridad](#anotador-datos-y-copias-de-seguridad)
+5. [Plataformas](#plataformas)
+6. [Estructura del proyecto](#estructura-del-proyecto)
+7. [Requisitos](#requisitos)
+8. [Puesta en marcha (desarrollo)](#puesta-en-marcha-desarrollo)
+9. [Generar el instalador](#generar-el-instalador)
+10. [Distribución](#distribución)
+11. [Solución de problemas](#solución-de-problemas)
 
 ---
 
@@ -46,7 +47,7 @@ Vista principal con las plataformas, el teleprompter de última hora, el reloj, 
 
 ![Anotador de Centinela BETA](Imagenes/demostracion/anotador.png)
 
-Bloc de notas integrado como vista interna (Ctrl+N): varias notas, autoguardado, contador de palabras/caracteres y exportación a `.txt`.
+Bloc de notas integrado como vista interna (Ctrl+N): varias notas, autoguardado, buscador, notas fijadas, contador de palabras/caracteres, exportación individual o masiva a `.txt`, importación de copias y restauración automática.
 
 ### Pantalla de carga
 
@@ -74,7 +75,7 @@ Splash con el logo de Estalingrado Corp y el texto *"Conectando a la Intra-net�
 - **Teleprompter de última hora** en la pantalla de inicio: cinta de titulares que se desplaza en la parte superior, alimentada por RSS de **Google News, BBC Mundo, BBC News, El País, Al Jazeera, NBC News, The Verge y TechCrunch** (descarga en el proceso principal, refresco cada 10 min, máximo 24 titulares). Los titulares van en **azul** y los que coinciden con señales de urgencia (*URGENTE, breaking news, alerta máxima, estado de emergencia, evacuación, explosión, terremoto, atentado, tiroteo, víctimas…*) en **rojo** con distintivo `URGENTE`. Clic en un titular → abre la noticia en el navegador. Sin conexión, la cinta muestra *SIN SEÑAL*.
 - **Tarjetas con imágenes** propias para todas las plataformas (favicons/iconos oficiales de cada sitio).
 - **Opción "Sobre el programa"** en el menú **Ayuda** (F1): modal con la info de Centinela BETA, la descripción y un botón que abre la web de Estalingrado Corp (`estalingradocorp.qzz.io`).
-- **Anotador** (menú **Centinela** o botón del inicio, Ctrl+N): bloc de notas integrado como vista interna de la app (no abre ventanas ni saca de pantalla completa), con varias notas, autoguardado local, contador de palabras/caracteres, exportación a `.txt` y botón **Volver** (Esc).
+- **Anotador** (menú **Centinela** o botón del inicio, Ctrl+N): bloc de notas integrado como vista interna de la app (no abre ventanas ni saca de pantalla completa), con varias notas, autoguardado local, **buscador** (Ctrl+F), **notas fijadas** (aparece siempre primero), contador de palabras/caracteres, **exportación individual** (`.txt`), **exportación de todas las notas** (Ctrl+Shift+E), **importación de copias de seguridad**, **restauración de la última copia**, **apertura de la carpeta de datos** y botón **Volver** (Esc).
 - **Capturas de pantalla** (menú **Ver** o botón **Captura**, Ctrl+Shift+S): captura la ventana completa de Centinela (incluida la vista activa), la guarda en `Imágenes\Centinela Capturas` y la copia al portapapeles.
 - **Menú nativo** con los módulos **Centinela**, **Ver** y **Ayuda**:
   - **Inicio** (Ctrl+H), **Anotador** (Ctrl+N) y atajos **Ctrl+1 … Ctrl+9** para cambiar de web.
@@ -85,7 +86,47 @@ Splash con el logo de Estalingrado Corp y el texto *"Conectando a la Intra-net�
 - **Seguridad de navegación**: solo se permiten las plataformas configuradas; el resto de enlaces se abren en el navegador del sistema.
 - **Bloqueo de anuncios** (listas EasyList + EasyPrivacy con caché local).
 - **Aislamiento de procesos**: `contextIsolation: true`, `nodeIntegration: false` y `sandbox: true` en las vistas de sitio.
-- **Instalador NSIS** con asistente, selección de carpeta y accesos directos.
+- **Instalador NSIS** con asistente, selección de carpeta y accesos directos. **No borra los datos de la app al desinstalar** (`deleteAppDataOnUninstall: false`).
+
+---
+
+## Anotador: datos y copias de seguridad
+
+> **Objetivo crítico:** el contenido de las notas **nunca debe perderse al reinstalar** Centinela BETA.
+
+### Dónde se guardan las notas
+
+| Qué | Ruta |
+| --- | --- |
+| Datos del anotador | `%APPDATA%\Centinela\notas\` |
+| Archivo principal (JSON) | `%APPDATA%\Centinela\notas\anotador.json` |
+| Espejo legible (texto plano) | `%APPDATA%\Centinela\notas\notas.txt` |
+| Copias de seguridad automáticas | `%APPDATA%\Centinela\notas\copias\` |
+
+Las notas viven **fuera** de la carpeta de datos de Electron (`%APPDATA%\centinela-beta`), porque el desinstalador NSIS borra esa carpeta por defecto. Como segunda barrera, el instalador se compila con `nsis.deleteAppDataOnUninstall: false`.
+
+### Funciones de protección
+
+- **Autoguardado** con debounce de 500 ms y **guardado sincrónico** al cerrar la app o el anotador (`beforeunload`).
+- **Escritura atómica**: se escribe un `.tmp` y se renombra, así un cierre abrupto no deja el JSON corrupto.
+- **Espejo en texto plano** (`notas.txt`) regenerado en cada guardado: siempre se puede leer el contenido fuera de la app.
+- **Copias de seguridad automáticas**: una por minuto como máximo, conservando las **20 más recientes** en `notas\copias\`.
+- **Restauración automática**: si `anotador.json` está vacío o corrupto al abrir la app, se recupera desde la última copia válida.
+- **Migración transparente**: las notas de la versión anterior (`%APPDATA%\centinela-beta\anotador.json`) se migran solas a la nueva ubicación y el archivo viejo queda respaldado en `notas\copias\migracion-*.json`.
+- **Importar / restaurar** desde la interfaz: `Importar` fusiona un `.json` de copia con las notas actuales y `Restaurar copia` recupera la última copia automática.
+
+### Atajos del anotador
+
+| Atajo | Acción |
+| --- | --- |
+| Ctrl+N | Abrir / cerrar el anotador |
+| Ctrl+Shift+N | Nueva nota |
+| Ctrl+F | Buscar en las notas |
+| Ctrl+S | Guardar ahora |
+| Ctrl+Shift+E | Exportar todas las notas a `.txt` |
+| Esc | Limpiar la búsqueda / volver al inicio |
+
+> Para una copia de seguridad manual: **Exportar .txt** (texto plano) o **Abrir carpeta** → copiar `anotador.json` a un Pendrive o a la nube.
 
 ---
 
@@ -149,8 +190,8 @@ Estalingradocorp-CentinelaEC/
 | --- | --- |
 | `main.js` | Proceso principal de Electron. Define las webs, construye el menú nativo, crea el splash y la ventana principal, gestiona las `WebContentsView` por plataforma y el IPC. |
 | `home.html` | Pantalla de inicio: tarjetas para elegir cada web, reloj, estado de conexión, interruptor de encriptación, canvas de estrellas y tagline. |
-| `notes.html` | Anotador: bloc de notas integrado como vista interna, con lista de notas, autoguardado, contador y exportación a `.txt`. |
-| `notes-preload.js` | Puente seguro del anotador (`window.anotador.{load,save,saveSync,exportNote,openFolder,close,capture}`). |
+| `notes.html` | Anotador: bloc de notas integrado como vista interna, con lista, buscador, notas fijadas, autoguardado, contador, exportación/importación/restoración y ruta de datos en el pie. |
+| `notes-preload.js` | Puente seguro del anotador (`window.anotador.{load,save,saveSync,exportNote,exportAll,importBackup,backups,restore,dataPath,openFolder,close,capture}`). |
 | `splash.html` | Pantalla de carga: logo, título, subtítulo y texto de conexión con spinner CSS. |
 | `preload.js` | Puente seguro (`window.centinela.{selectSite,getCurrent,openExternal,openNotes}`) entre el renderizador y el proceso principal, con inyección de estilos base. |
 | `adblock.js` | Inicializa el bloqueo de anuncios (`@cliqz/adblocker`) con listas EasyList/EasyPrivacy y caché local. |
@@ -259,6 +300,7 @@ El instalador es un **programa de uso interno** que no está firmado digitalment
 | No bloquea anuncios la primera vez | La primera ejecución necesita internet para descargar las listas EasyList/EasyPrivacy y guardarlas en caché. |
 | El splash se queda mucho tiempo | Es por red de seguridad; la app fuerza la transición a los ~11,8 s máx. |
 | Electron no descarga el binario al `npm install` | Revisa la clave `allowScripts` en `package.json`. |
+| No aparecen las notas después de reinstalar | Las notas están en `%APPDATA%\Centinela\notas\` (fuera de la carpeta que borra el desinstalador). Abrí **Anotador → Abrir carpeta** y verificá que exista `anotador.json`; si falta, usá **Restaurar copia** o **Importar**. |
 | La carpeta está en OneDrive y da errores al compilar | OneDrive bloquea archivos en uso. Mueve el proyecto a una ruta local (p. ej. `C:\dev\centinela`). |
 
 ---
@@ -296,3 +338,4 @@ El instalador es un **programa de uso interno** que no está firmado digitalment
 - **27/10/2026: se elimina el módulo Centinela Globe (WorldWideView)** de la app: tarjeta, atajo Ctrl+0, menú, loader `globe.html`, `globe-preload.js` y toda la lógica de Docker/auto-login. La app queda con 9 plataformas (Ctrl+1–9). El proyecto `..\worldwideview` y su instancia Docker quedan intactos en disco, fuera de Centinela.
 - **02/11/2026: Anotador** en el menú **Centinela** (Ctrl+N) y botón en la cabecera del inicio: vista interna (no abre ventana ni saca de pantalla completa), varias notas, autoguardado en `%APPDATA%\centinela-beta\anotador.json`, contador de palabras/caracteres, exportación a `.txt` y acceso a la carpeta de datos.
 - **02/11/2026: Capturas de pantalla** en el menú **Ver** (Ctrl+Shift+S) y botón **Captura** en el inicio: guarda la ventana completa de Centinela en `Imágenes\Centinela Capturas` y la copia al portapapeles.
+- **18/11/2026: Anotador v2 — las notas ya no se pierden al reinstalar.** Los datos se movieron fuera de la carpeta que borra el desinstalador: ahora viven en `%APPDATA%\Centinela\notas\` (`anotador.json` + espejo `notas.txt` + `copias\`). El instalador se compila con `nsis.deleteAppDataOnUninstall: false`. Se agregaron **buscador** (Ctrl+F), **notas fijadas**, **exportar todas las notas a .txt** (Ctrl+Shift+E), **importar copia de seguridad**, **restaurar la última copia**, **abrir carpeta** y la **ruta de datos visible en el pie**. Además: escritura atómica, autoguardado 500 ms, guardado sincrónico al cerrar, copias de seguridad automáticas (20 últimas, una por minuto), restauración automática si el JSON se corrompe y migración transparente desde la ubicación anterior.
