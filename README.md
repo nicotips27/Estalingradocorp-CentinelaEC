@@ -1,6 +1,6 @@
 # Centinela BETA
 
-App de escritorio para Windows que abre **nueve plataformas de monitoreo y datos** en vistas dedicadas, sin necesidad de navegador. Construida con Electron, con temática **azul y negro**, pantalla de carga con logo de Estalingrado Corp y bloqueo de anuncios integrado.
+App de escritorio para Windows que abre **nueve plataformas de monitoreo y datos** dentro de un **navegador propio con pestañas**, sin necesidad de un navegador externo. Construida con Electron, con estética **dark tipo terminal Kali Linux**, pantalla de carga con logo de Estalingrado Corp y bloqueo de anuncios integrado.
 
 ---
 
@@ -9,26 +9,29 @@ App de escritorio para Windows que abre **nueve plataformas de monitoreo y datos
 1. [Descripción](#descripción)
 2. [Capturas de pantalla](#capturas-de-pantalla)
 3. [Características](#características)
-4. [Anotador: datos y copias de seguridad](#anotador-datos-y-copias-de-seguridad)
-5. [Plataformas](#plataformas)
-6. [Estructura del proyecto](#estructura-del-proyecto)
-7. [Requisitos](#requisitos)
-8. [Puesta en marcha (desarrollo)](#puesta-en-marcha-desarrollo)
-9. [Generar el instalador](#generar-el-instalador)
-10. [Distribución](#distribución)
-11. [Solución de problemas](#solución-de-problemas)
+4. [Navegador de pestañas](#navegador-de-pestañas)
+5. [Anotador: datos y copias de seguridad](#anotador-datos-y-copias-de-seguridad)
+6. [Plataformas](#plataformas)
+7. [Estructura del proyecto](#estructura-del-proyecto)
+8. [Requisitos](#requisitos)
+9. [Puesta en marcha (desarrollo)](#puesta-en-marcha-desarrollo)
+10. [Generar el instalador](#generar-el-instalador)
+11. [Distribución](#distribución)
+12. [Solución de problemas](#solución-de-problemas)
 
 ---
 
 ## Descripción
 
-**Centinela BETA** es un *wrapper* de escritorio construido con [Electron](https://www.electronjs.org/). Su propósito es ofrecer acceso rápido y autónomo a **nueve plataformas** de monitoreo de inteligencia y datos.
+**Centinela BETA** es un *wrapper* de escritorio construido con [Electron](https://www.electronjs.org/). Su propósito es ofrecer acceso rápido y autónomo a **nueve plataformas** de monitoreo de inteligencia y datos, con todo dentro de una sola ventana.
 
 Características principales:
 
-- Carga cada web en una **vista aislada** (`WebContentsView`) dentro de la ventana principal.
-- **Pantalla de inicio** con tarjetas para elegir cada plataforma.
-- **Menú nativo** para alternar entre webs.
+- **Navegador propio con pestañas**: cada plataforma se abre como una pestaña, con barra de direcciones, historial (atrás/adelante), recarga y zoom.
+- Cada web se renderiza en una **vista aislada** (`WebContentsView`) que se reengancha al activar su pestaña, conservando estado, scroll y formularios.
+- **Lanzador de módulos** con tarjetas para abrir la primera pestaña.
+- **Menú nativo** reorganizado en 4 secciones para liberar espacio: Centinela, Ver, Herramientas y Ayuda.
+- Estética **dark tipo terminal Kali Linux** (fondo casi negro, monoespaciada, acentos azul/verde/rojo/cian).
 - Muestra una pantalla de carga animada mientras las webs se conectan.
 - Reenvía los enlaces externos (que no sean de las webs permitidas) al navegador del sistema.
 - Se instala como programa normal de Windows (con acceso directo en escritorio e inicio).
@@ -41,13 +44,19 @@ Características principales:
 
 ![Pantalla de inicio de Centinela BETA](Imagenes/demostracion/inicio.png)
 
-Vista principal con las plataformas, el teleprompter de última hora, el reloj, el estado de conexión, los accesos **Anotador** y **Captura**, y el interruptor **Encriptar la Intra-Net**.
+Vista principal (lanzador de módulos) con las 9 plataformas, el teleprompter de última hora, el reloj, el estado de conexión, los accesos **Anotador** y **Captura**, y el interruptor **Encriptar la Intra-Net**, todo bajo la barra de pestañas y la barra de direcciones estilo terminal Kali.
+
+### Navegador de pestañas
+
+![Navegador de pestañas de Centinela BETA](Imagenes/demostracion/inicio.png)
+
+Barra de pestañas con favicon y nombre de cada plataforma, botón `+` para nueva pestaña, barra de direcciones con indicador `SECURE`, y debajo la vista de la web activa.
 
 ### Anotador
 
 ![Anotador de Centinela BETA](Imagenes/demostracion/anotador.png)
 
-Bloc de notas integrado como vista interna (Ctrl+N): varias notas, autoguardado, buscador, notas fijadas, contador de palabras/caracteres, exportación individual o masiva a `.txt`, importación de copias y restauración automática.
+Bloc de notas integrado como **pestaña del navegador** (Ctrl+N): varias notas, autoguardado, buscador, notas fijadas, contador de palabras/caracteres, exportación individual o masiva a `.txt`, importación de copias y restauración automática.
 
 ### Pantalla de carga
 
@@ -66,27 +75,63 @@ Splash con el logo de Estalingrado Corp y el texto *"Conectando a la Intra-net�
 
 ## Características
 
-- **Vista dedicada por plataforma** (`WebContentsView`): cada sitio se renderiza en su propia vista aislada, con mejor rendimiento y sin recargar la pantalla de inicio. La ventana principal (1280×800, mínimo 800×600) arranca en **pantalla completa**.
+- **Navegador con pestañas integrado**: barra de pestañas (nombre de la plataforma + favicon + botón `×`), barra de direcciones con indicador de estado (`LAUNCHER` / `SECURE` / `EXTERNAL`), y navegación real (atrás, adelante, recarga, recarga sin caché, zoom, DevTools).
+- **Vista dedicada por plataforma** (`WebContentsView`): cada sitio se renderiza en su propia vista aislada, con mejor rendimiento y sin recargar el lanzador. La ventana principal (1280×800, mínimo 800×600) arranca en **pantalla completa**.
 - **User-Agent de Chrome 124** (`session.defaultSession.setUserAgent`): evita que Cloudflare y otros sitios anti-bot bloqueen a Electron.
-- **Tema azul y negro** en toda la interfaz (pantalla de inicio y splash), con acentos `#0052cc` → `#0066ff`.
-- **Pantalla de inicio**: al arrancar (y con **Inicio** del menú / Ctrl+H) se muestra un lanzador con tarjetas para elegir cada web, tagline descriptivo, reloj en vivo, estado de conexión de cada plataforma (online/offline) e **interruptor "Encriptar la Intra-Net"** (desactivado por defecto; al activarlo el **LED** y los indicadores de red pasan a azul y el estado cambia a *SYS.ENCRYPTION ACTIVE*).
-- **Fondo de estrellas animado** (canvas 2D) con parallax, twinkling y soporte para `prefers-reduced-motion`.
+- **Estética dark tipo Kali Linux** en toda la interfaz: fondo `#07090c`, paneles `#0d1014`/`#141920`, líneas `#232a33`, acentos azul `#367bf0`/`#5b9bff`, verde `#35d07f`, rojo `#ff4d4f`, amarillo `#e3b341` y cian `#3fc9d4`; tipografía monoespaciada (`JetBrains Mono`/`Fira Code`/`Cascadia Mono`/`Consolas`), bordes rectos y prompt `root@centinela:`.
+- **Lanzador de módulos** con 9 tarjetas (imagen, nombre, descripción, atajo y estado online/offline). Aparece cuando no hay ninguna pestaña abierta y se recupera con **Inicio** (Ctrl+H).
+- **Barra de direcciones restringida**: sólo navega a las plataformas permitidas (coincidencia por origen); cualquier otro destino se abre con el navegador del sistema y se avisa con un toast.
+- **Teleprompter de última hora** en la parte inferior del lanzador: cinta de titulares que se desplaza, alimentada por RSS de **Google News, BBC Mundo, BBC News, El País, Al Jazeera, NBC News, The Verge y TechCrunch** (descarga en el proceso principal, refresco cada 10 min, máximo 24 titulares). Los titulares van en **azul** y los que coinciden con señales de urgencia (*URGENTE, breaking news, alerta máxima, estado de emergencia, evacuación, explosión, terremoto, atentado, tiroteo, víctimas…*) en **rojo** con distintivo `URGENTE`. Clic en un titular → abre la noticia en el navegador. Sin conexión, la cinta muestra *SIN SEÑAL*.
 - **Monitoreo de conectividad** por plataforma mediante peticiones `HEAD` con `AbortController` (timeout 5 s), con reintento y estado agregado en el pie (*INTRA-NET ONLINE / PARCIAL / SIN CONEXIÓN*).
-- **Teleprompter de última hora** en la pantalla de inicio: cinta de titulares que se desplaza en la parte superior, alimentada por RSS de **Google News, BBC Mundo, BBC News, El País, Al Jazeera, NBC News, The Verge y TechCrunch** (descarga en el proceso principal, refresco cada 10 min, máximo 24 titulares). Los titulares van en **azul** y los que coinciden con señales de urgencia (*URGENTE, breaking news, alerta máxima, estado de emergencia, evacuación, explosión, terremoto, atentado, tiroteo, víctimas…*) en **rojo** con distintivo `URGENTE`. Clic en un titular → abre la noticia en el navegador. Sin conexión, la cinta muestra *SIN SEÑAL*.
-- **Tarjetas con imágenes** propias para todas las plataformas (favicons/iconos oficiales de cada sitio).
 - **Opción "Sobre el programa"** en el menú **Ayuda** (F1): modal con la info de Centinela BETA, la descripción y un botón que abre la web de Estalingrado Corp (`estalingradocorp.qzz.io`).
-- **Anotador** (menú **Centinela** o botón del inicio, Ctrl+N): bloc de notas integrado como vista interna de la app (no abre ventanas ni saca de pantalla completa), con varias notas, autoguardado local, **buscador** (Ctrl+F), **notas fijadas** (aparece siempre primero), contador de palabras/caracteres, **exportación individual** (`.txt`), **exportación de todas las notas** (Ctrl+Shift+E), **importación de copias de seguridad**, **restauración de la última copia**, **apertura de la carpeta de datos** y botón **Volver** (Esc).
+- **Anotador** como **pestaña de herramienta** (Ctrl+N o menú **Herramientas**): varias notas, autoguardado local, **buscador** (Ctrl+F), **notas fijadas**, contador de palabras/caracteres, **exportación individual** (`.txt`), **exportación de todas las notas** (Ctrl+Shift+E), **importación de copias de seguridad**, **restauración de la última copia**, **apertura de la carpeta de datos**. Al cerrar la pestaña se ejecuta un guardado sincrónico (`window.__anotadorFlush()`) para no perder lo último tipeado.
 - **Capturas de pantalla** (menú **Ver** o botón **Captura**, Ctrl+Shift+S): captura la ventana completa de Centinela (incluida la vista activa), la guarda en `Imágenes\Centinela Capturas` y la copia al portapapeles.
-- **Menú nativo** con los módulos **Centinela**, **Ver** y **Ayuda**:
-  - **Inicio** (Ctrl+H), **Anotador** (Ctrl+N) y atajos **Ctrl+1 … Ctrl+9** para cambiar de web.
-  - Recargar (Ctrl+R), DevTools (F12), Captura de pantalla (Ctrl+Shift+S), Pantalla completa (F11) —_RECARGAR_ y _DEVTOOLS_ operan sobre la vista activa.
-  - "Sobre el programa" y accesos a las webs en el navegador.
+- **Menú nativo** reorganizado en 4 secciones, sin las 9 plataformas (ahora viven como pestañas) para liberar espacio:
+  - **Centinela**: Inicio (Ctrl+H), Nueva pestaña (Ctrl+T), Cerrar pestaña (Ctrl+W), Pestaña siguiente/anterior (Ctrl+Tab / Ctrl+Shift+Tab), Salir.
+  - **Ver**: Recargar (Ctrl+R), Recargar sin caché (Ctrl+Shift+R), Atrás/Adelante, Zoom, DevTools (F12), Pantalla completa (F11), carpeta de capturas.
+  - **Herramientas**: Anotador (Ctrl+N), Captura (Ctrl+Shift+S), carpeta de notas, Restaurar copia de notas, Encriptar la Intra-Net, Vaciar caché.
+  - **Ayuda**: "Sobre el programa" (F1) y accesos a las webs en el navegador.
+- **Atajos de plataforma** **Ctrl+1 … Ctrl+9** registrados globalmente (`before-input-event`), así funcionan con cualquier pestaña activa.
 - **Pantalla de carga (splash)** con logo, título y texto *"Conectando a la Intra-net…"* con spinner circular.
 - **Carga en paralelo**: la web se carga en segundo plano mientras se muestra el splash, con transición al terminar (mínimo 1,8 s).
 - **Seguridad de navegación**: solo se permiten las plataformas configuradas; el resto de enlaces se abren en el navegador del sistema.
 - **Bloqueo de anuncios** (listas EasyList + EasyPrivacy con caché local).
 - **Aislamiento de procesos**: `contextIsolation: true`, `nodeIntegration: false` y `sandbox: true` en las vistas de sitio.
 - **Instalador NSIS** con asistente, selección de carpeta y accesos directos. **No borra los datos de la app al desinstalar** (`deleteAppDataOnUninstall: false`).
+
+---
+
+## Navegador de pestañas
+
+Todas las plataformas viven dentro de **una sola ventana**, como un navegador propio.
+
+### Cómo funciona
+
+- Cada pestaña conserva su `WebContentsView`: al cambiar de pestaña la vista se **desengancha** (`setVisible(false)`) y al activarse se **reengancha** en la posición correcta, conservando scroll, formularios y sesión.
+- La barra de pestañas y la barra de direcciones viven en `home.html`. El renderizador informa el **alto real** de la barra por IPC (`chrome:height`) y el proceso principal posiciona las vistas justo debajo (`y = chromeHeight`).
+- El **título de la pestaña** muestra el nombre de la plataforma (por ejemplo *Radio Garden*); el título real de la página queda en el tooltip.
+- Cuando no queda ninguna pestaña abierta se ve el **lanzador de módulos**.
+
+### Atajos
+
+| Atajo | Acción |
+| --- | --- |
+| Ctrl+T | Nueva pestaña |
+| Ctrl+W | Cerrar pestaña activa |
+| Ctrl+Tab / Ctrl+Shift+Tab | Pestaña siguiente / anterior |
+| Ctrl+H | Inicio (lanzador de módulos) |
+| Ctrl+L | Foco en la barra de direcciones |
+| Ctrl+R / Ctrl+Shift+R | Recargar / recargar sin caché |
+| Ctrl+1 … Ctrl+9 | Abrir la plataforma correspondiente en una pestaña |
+| Ctrl+N | Anotador (pestaña de herramienta) |
+| Ctrl+Shift+S | Captura de pantalla |
+| F11 / F12 | Pantalla completa / DevTools |
+
+### Reglas de navegación
+
+- La barra de direcciones sólo navega a **plataformas permitidas** (coincidencia por origen).
+- Cualquier otro destino se abre con el navegador del sistema y se informa con un toast.
+- El botón **×** de cada pestaña la cierra; en la pestaña del anotador se guarda el contenido antes de destruirla.
 
 ---
 
@@ -119,12 +164,12 @@ Las notas viven **fuera** de la carpeta de datos de Electron (`%APPDATA%\centine
 
 | Atajo | Acción |
 | --- | --- |
-| Ctrl+N | Abrir / cerrar el anotador |
+| Ctrl+N | Abrir el anotador como pestaña |
 | Ctrl+Shift+N | Nueva nota |
 | Ctrl+F | Buscar en las notas |
 | Ctrl+S | Guardar ahora |
 | Ctrl+Shift+E | Exportar todas las notas a `.txt` |
-| Esc | Limpiar la búsqueda / volver al inicio |
+| Esc | Limpiar la búsqueda / cerrar la pestaña del anotador |
 
 > Para una copia de seguridad manual: **Exportar .txt** (texto plano) o **Abrir carpeta** → copiar `anotador.json` a un Pendrive o a la nube.
 
@@ -154,11 +199,11 @@ Las notas viven **fuera** de la carpeta de datos de Electron (`%APPDATA%\centine
 Estalingradocorp-CentinelaEC/
 ├── package.json        # Configuración del proyecto, scripts y electron-builder
 ├── package-lock.json   # Bloqueo de dependencias (generado)
-├── main.js             # Proceso principal: WebContentsView, menú nativo, navegación segura e IPC
-├── preload.js          # Puente seguro entre el renderizador y Node
+├── main.js             # Proceso principal: pestañas, WebContentsView, menú nativo, navegación segura e IPC
+├── preload.js          # Puente seguro entre el renderizador y Node (API del navegador)
 ├── renderer.html       # Página de respaldo (poco usada)
 ├── splash.html         # Pantalla de carga con el logo y el texto
-├── home.html           # Pantalla de inicio (lanzador + teleprompter de noticias)
+├── home.html           # Shell del navegador: barra de pestañas, barra de direcciones y lanzador de módulos
 ├── notes.html          # Anotador: bloc de notas con autoguardado y exportación
 ├── notes-preload.js    # Puente seguro del anotador (cargar / guardar / exportar)
 ├── logo.jpg            # Logo de Estalingrado Corp (splash, tarjeta EC Terminal Data)
@@ -188,12 +233,12 @@ Estalingradocorp-CentinelaEC/
 
 | Archivo | Rol |
 | --- | --- |
-| `main.js` | Proceso principal de Electron. Define las webs, construye el menú nativo, crea el splash y la ventana principal, gestiona las `WebContentsView` por plataforma y el IPC. |
-| `home.html` | Pantalla de inicio: tarjetas para elegir cada web, reloj, estado de conexión, interruptor de encriptación, canvas de estrellas y tagline. |
-| `notes.html` | Anotador: bloc de notas integrado como vista interna, con lista, buscador, notas fijadas, autoguardado, contador, exportación/importación/restoración y ruta de datos en el pie. |
+| `main.js` | Proceso principal de Electron. Define las webs, construye el menú nativo (Centinela / Ver / Herramientas / Ayuda), crea el splash y la ventana principal, gestiona las **pestañas** (`WebContentsView` por pestaña, attaching/detaching, layout bajo la barra del navegador) y el IPC. |
+| `home.html` | Shell del navegador: barra de pestañas, barra de direcciones, lanzador de módulos, reloj, estado de conexión, interruptor de encriptación, teleprompter de noticias y toast. |
+| `notes.html` | Anotador: bloc de notas integrado como pestaña de herramienta, con lista, buscador, notas fijadas, autoguardado, contador, exportación/importación/restoración y ruta de datos en el pie. Expone `window.__anotadorFlush()` para guardar antes de cerrar la pestaña. |
 | `notes-preload.js` | Puente seguro del anotador (`window.anotador.{load,save,saveSync,exportNote,exportAll,importBackup,backups,restore,dataPath,openFolder,close,capture}`). |
 | `splash.html` | Pantalla de carga: logo, título, subtítulo y texto de conexión con spinner CSS. |
-| `preload.js` | Puente seguro (`window.centinela.{selectSite,getCurrent,openExternal,openNotes}`) entre el renderizador y el proceso principal, con inyección de estilos base. |
+| `preload.js` | Puente seguro del navegador (`window.centinela.{getTabs,onTabs,activateTab,closeTab,newTab,cycleTab,go,focusUrl,back,forward,reload,home,setChromeHeight,setEncryption,onToast,onFocusUrl,onEncryption,capture}`) entre el renderizador y el proceso principal, con inyección de estilos base. |
 | `adblock.js` | Inicializa el bloqueo de anuncios (`@cliqz/adblocker`) con listas EasyList/EasyPrivacy y caché local. |
 | `package.json` | Define nombre, versión, scripts (`start`, `dist`), archivos empaquetados y configuración de electron-builder. |
 | `make-icon.js` | Regenera `icon.png` (256×256) e `icon.ico` desde el icono maestro `Imagenes/Iconos/icono/icono.png`. Requiere `npm install` (usa `app-builder`). |
@@ -339,3 +384,4 @@ El instalador es un **programa de uso interno** que no está firmado digitalment
 - **02/11/2026: Anotador** en el menú **Centinela** (Ctrl+N) y botón en la cabecera del inicio: vista interna (no abre ventana ni saca de pantalla completa), varias notas, autoguardado en `%APPDATA%\centinela-beta\anotador.json`, contador de palabras/caracteres, exportación a `.txt` y acceso a la carpeta de datos.
 - **02/11/2026: Capturas de pantalla** en el menú **Ver** (Ctrl+Shift+S) y botón **Captura** en el inicio: guarda la ventana completa de Centinela en `Imágenes\Centinela Capturas` y la copia al portapapeles.
 - **18/11/2026: Anotador v2 — las notas ya no se pierden al reinstalar.** Los datos se movieron fuera de la carpeta que borra el desinstalador: ahora viven en `%APPDATA%\Centinela\notas\` (`anotador.json` + espejo `notas.txt` + `copias\`). El instalador se compila con `nsis.deleteAppDataOnUninstall: false`. Se agregaron **buscador** (Ctrl+F), **notas fijadas**, **exportar todas las notas a .txt** (Ctrl+Shift+E), **importar copia de seguridad**, **restaurar la última copia**, **abrir carpeta** y la **ruta de datos visible en el pie**. Además: escritura atómica, autoguardado 500 ms, guardado sincrónico al cerrar, copias de seguridad automáticas (20 últimas, una por minuto), restauración automática si el JSON se corrompe y migración transparente desde la ubicación anterior.
+- **25/11/2026: Rediseño tipo Kali Linux + navegador de pestañas.** Toda la interfaz pasa a una estética **dark de terminal** (fondo `#07090c`, monoespaciada, acentos azul/verde/rojo/cian, prompt `root@centinela:`). Las 9 plataformas dejan de estar en el menú nativo y pasan a **pestañas dentro de una sola ventana**, con barra de pestañas, barra de direcciones, navegación real (atrás/adelante/recarga/zoom) y vistas `WebContentsView` que se reenganchan conservando estado. El **Anotador** pasa a ser una pestaña de herramienta (se guarda de forma sincrónica al cerrarla). El menú nativo se reorganiza en 4 secciones (**Centinela**, **Ver**, **Herramientas**, **Ayuda**) para liberar espacio. Los atajos **Ctrl+1 … Ctrl+9** se registran globalmente con `before-input-event` para que sigan funcionando con cualquier pestaña activa. La barra de direcciones sólo navega a plataformas permitidas; el resto se abre en el navegador del sistema.

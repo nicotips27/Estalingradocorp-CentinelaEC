@@ -23,14 +23,20 @@ const SITES = [
   { name: 'Drive & Listen',    url: 'https://driveandlisten.app/',                               shortcut: 'CmdOrCtrl+9' }
 ];
 
-let currentSite = -1;
 const SPLASH_MIN_MS = 1800;
 let mainWindow = null;
 let splashWindow = null;
-let notesView = null;      // anotador como vista interna (no rompe pantalla completa)
-let notesVisible = false;
-let siteView = null;      // vista del sitio actualmente visible
-let pendingView = null;   // vista cargando (todavía no visible)
+let notesView = null;      // vista del anotador (se usa como pestaña de herramienta)
+
+// ── Navegador con pestañas ──────────────────────────────────────────────────
+// Cada plataforma se abre como una pestaña dentro de la misma ventana.
+// Las vistas se desenganchan al cambiar de pestaña (conservan su estado) y
+// solo la pestaña activa queda visible bajo la barra del navegador.
+let chromeHeight = 78;    // alto real de la barra (lo informa el renderizador)
+let tabs = [];            // { id, kind:'site'|'tool', tool, siteIndex, title, url, view, loading }
+let activeTabId = null;
+let tabSeq = 0;
+let encryptionOn = false;
 
 function getSiteOrigin(url) {
   try { return new URL(url).origin; } catch { return null; }
@@ -197,9 +203,34 @@ function contentBounds() {
   return { x: 0, y: 0, width, height };
 }
 
+// Área de contenido: todo lo que queda debajo de la barra del navegador.
+function pageBounds() {
+  const b = contentBounds();
+  return { x: 0, y: chromeHeight, width: b.width, height: Math.max(0, b.height - chromeHeight) };
+}
+
+function tabById(id) { return tabs.find(t => t.id === id) || null; }
+function activeTab() { return tabById(activeTabId); }
+function notesTab() { return tabs.find(t => t.kind === 'tool' && t.tool === 'notes') || null; }
+
+function currentSiteIndex() {
+  const tab = activeTab();
+  return tab && tab.kind === 'site' ? tab.siteIndex : -1;
+}
+
+function navFlags(tab) {
+  const wc = tab && tab.view && !tab.view.webContents.isDestroyed() ? tab.view.webContents : null;
+  let back = false;
+  let forward = false;
+  if (wc) {
+    try { back = wc.canGoBack(); forward = wc.canGoForward(); } catch (e) {}
+  }
+  return { back, forward };
+}
+
 function activeWebContents() {
-  if (notesView && notesVisible && !notesView.webContents.isDestroyed()) return notesView.webContents;
-  if (siteView && !siteView.webContents.isDestroyed()) return siteView.webContents;
+  const tab = activeTab();
+  if (tab && tab.view && !tab.view.webContents.isDestroyed()) return tab.view.webContents;
   return mainWindow && !mainWindow.isDestroyed() ? mainWindow.webContents : null;
 }
 
@@ -209,27 +240,128 @@ function destroyView(view) {
   try { view.webContents.close(); } catch (e) {}
 }
 
+// Desengancha todas las vistas sin cerrarlas (conservan su estado).
+function detachViews() {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  for (const t of tabs) {
+    if (t.view && !t.view.webContents.isDestroyed()) {
+      try { mainWindow.contentView.removeChildView(t.view); } catch (e) {}
+    }
+  }
+}
+
+function tabsState() {
+  return tabs.map(t => {
+    const f = navFlags(t);
+    return {
+      id: t.id,
+      kind: t.kind,
+      tool: t.tool || '',
+      siteIndex: typeof t.siteIndex === 'number' ? t.siteIndex : -1,
+      title: t.title,
+      pageTitle: t.pageTitle || t.title,
+      url: t.url,
+      loading: !!t.loading,
+      active: t.id === activeTabId,
+      canGoBack: f.back,
+      canGoForward: f.forward
+    };
+  });
+}
+
+function pushTabsState() {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  mainWindow.webContents.send('tabs-update', tabsState());
+  mainWindow.webContents.send('current-update', currentSiteIndex());
+}
+
+function updateWindowTitle() {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  const tab = activeTab();
+  mainWindow.setTitle(tab ? `Centinela BETA — ${tab.title}` : 'Centinela BETA — Inicio');
+}
+
+function layoutViews() {
+  const tab = activeTab();
+  if (tab && tab.view && !tab.view.webContents.isDestroyed()) tab.view.setBounds(pageBounds());
+}
+
+function activateTab(id) {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  const tab = tabById(id);
+  detachViews();
+  activeTabId = tab ? tab.id : null;
+
+  if (tab && tab.view && !tab.view.webContents.isDestroyed()) {
+    mainWindow.contentView.addChildView(tab.view);
+    tab.view.setBounds(pageBounds());
+    tab.view.webContents.focus();
+  }
+  mainWindow.focus();
+  updateWindowTitle();
+  pushTabsState();
+  buildMenu();
+}
+
+// Vuelve al lanzador de módulos (pestaña nueva) sin cerrar las demás pestañas.
+function showLauncher() {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  detachViews();
+  activeTabId = null;
+  updateWindowTitle();
+  pushTabsState();
+  mainWindow.webContents.focus();
+  mainWindow.focus();
+}
+
+function toastToLauncher(message) {
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('toast', message);
+}
+
+// Ctrl+1 … Ctrl+9 abren el módulo correspondiente en una pestaña,
+// sin importar qué vista tenga el foco.
+function attachModuleShortcuts(wc) {
+  if (!wc || wc.__centinelaShortcuts) return;
+  wc.__centinelaShortcuts = true;
+  try {
+    wc.on('before-input-event', (event, input) => {
+      if (!input || input.type !== 'keyDown') return;
+      if (!input.control && !input.meta) return;
+      const key = String(input.key || '');
+      if (key.length !== 1) return;
+      const n = parseInt(key, 10);
+      if (n >= 1 && n <= 9) {
+        event.preventDefault();
+        openSiteTab(n - 1);
+      }
+    });
+  } catch (e) {}
+}
+
 function buildMenu() {
-  const siteMenuItems = SITES.map((s, i) => ({
-    label: s.name,
-    accelerator: s.shortcut,
-    type: 'radio',
-    checked: i === currentSite,
-    click: () => navigateTo(i)
-  }));
+  const tab = activeTab();
+  const flags = navFlags(tab);
 
   const menu = Menu.buildFromTemplate([
     {
       label: 'Centinela',
       submenu: [
-        { label: 'Inicio', accelerator: 'CmdOrCtrl+H', click: () => goHome() },
-        {
-          label: notesVisible ? 'Cerrar anotador' : 'Anotador',
-          accelerator: 'CmdOrCtrl+N',
-          click: () => { notesVisible ? closeNotes() : openNotes(); }
-        },
+        { label: 'Inicio · módulos', accelerator: 'CmdOrCtrl+H', click: () => showLauncher() },
+        { label: 'Nueva pestaña', accelerator: 'CmdOrCtrl+T', click: () => showLauncher() },
+        { label: 'Cerrar pestaña', accelerator: 'CmdOrCtrl+W', enabled: !!tab, click: () => closeActiveTab() },
         { type: 'separator' },
-        ...siteMenuItems,
+        {
+          label: 'Pestaña siguiente',
+          accelerator: 'CmdOrCtrl+Tab',
+          enabled: tabs.length > 1,
+          click: () => cycleTab(1)
+        },
+        {
+          label: 'Pestaña anterior',
+          accelerator: 'CmdOrCtrl+Shift+Tab',
+          enabled: tabs.length > 1,
+          click: () => cycleTab(-1)
+        },
         { type: 'separator' },
         { label: 'Salir', accelerator: 'CmdOrCtrl+Q', click: () => app.quit() }
       ]
@@ -237,10 +369,22 @@ function buildMenu() {
     {
       label: 'Ver',
       submenu: [
-        { label: 'Recargar', accelerator: 'CmdOrCtrl+R', click: () => activeWebContents()?.reload() },
+        { label: 'Recargar', accelerator: 'CmdOrCtrl+R', click: () => navReload(false) },
+        { label: 'Recargar sin caché', accelerator: 'CmdOrCtrl+Shift+R', click: () => navReload(true) },
+        { type: 'separator' },
+        { label: 'Atrás', enabled: flags.back, click: () => navBack() },
+        { label: 'Adelante', enabled: flags.forward, click: () => navForward() },
+        { type: 'separator' },
+        { label: 'Agrandar', accelerator: 'CmdOrCtrl+=', click: () => zoomBy(0.1) },
+        { label: 'Achicar', accelerator: 'CmdOrCtrl+-', click: () => zoomBy(-0.1) },
+        { label: 'Tamaño normal', accelerator: 'CmdOrCtrl+0', click: () => zoomBy(0, true) },
+        { type: 'separator' },
         { label: 'DevTools', accelerator: 'F12', click: () => activeWebContents()?.toggleDevTools() },
         { type: 'separator' },
-        { label: 'Captura de pantalla', accelerator: 'CmdOrCtrl+Shift+S', click: () => takeScreenshot() },
+        { label: 'Pantalla completa', accelerator: 'F11', click: () => {
+          if (!mainWindow) return;
+          mainWindow.setFullScreen(!mainWindow.isFullScreen());
+        }},
         {
           label: 'Abrir carpeta de capturas',
           click: () => {
@@ -249,12 +393,40 @@ function buildMenu() {
               shell.openPath(capturesDir());
             } catch (e) {}
           }
-        },
+        }
+      ]
+    },
+    {
+      label: 'Herramientas',
+      submenu: [
+        { label: 'Anotador', accelerator: 'CmdOrCtrl+N', click: () => openNotesTab() },
+        { label: 'Captura de pantalla', accelerator: 'CmdOrCtrl+Shift+S', click: () => takeScreenshot() },
         { type: 'separator' },
-        { label: 'Pantalla completa', accelerator: 'F11', click: () => {
-          if (!mainWindow) return;
-          mainWindow.setFullScreen(!mainWindow.isFullScreen());
-        }}
+        {
+          label: 'Abrir carpeta de notas',
+          click: () => {
+            try {
+              ensureNotesDir();
+              shell.openPath(notesDataDir());
+            } catch (e) {}
+          }
+        },
+        { label: 'Restaurar última copia de notas', click: () => restoreNotesBackup() },
+        { type: 'separator' },
+        {
+          label: 'Encriptar la Intra-Net',
+          type: 'checkbox',
+          checked: encryptionOn,
+          click: item => setEncryption(item.checked)
+        },
+        {
+          label: 'Vaciar caché de navegación',
+          click: () => {
+            session.defaultSession.clearCache()
+              .then(() => toastToLauncher('Caché de navegación vaciada'))
+              .catch(() => toastToLauncher('No se pudo vaciar la caché'));
+          }
+        }
       ]
     },
     {
@@ -270,12 +442,29 @@ function buildMenu() {
   Menu.setApplicationMenu(menu);
 }
 
+function setEncryption(on) {
+  encryptionOn = !!on;
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('encrypt:set', encryptionOn);
+  buildMenu();
+}
+
+function restoreNotesBackup() {
+  const restored = restoreLatestBackup();
+  if (restored) {
+    toastToLauncher('Copia restaurada · ' + restored.notes.length + ' notas');
+    const tab = notesTab();
+    if (tab && tab.view && !tab.view.webContents.isDestroyed()) tab.view.webContents.reload();
+  } else {
+    toastToLauncher('No hay copias de seguridad de notas');
+  }
+}
+
 function showAbout() {
   dialog.showMessageBox(mainWindow, {
     type: 'info',
     title: 'Centinela BETA',
     message: 'Centinela BETA v1.0.0 · Servicio Estalingrado Corp',
-    detail: 'Centro de inteligencia global. Monitoreá el mundo, analizá información y seguí acontecimientos en tiempo real desde una única plataforma.\n\nAtajos: Ctrl+1–9 para módulos | Ctrl+H para inicio\n\nWeb: estalingradocorp.qzz.io',
+    detail: 'Centro de inteligencia global. Monitoreá el mundo, analizá información y seguí acontecimientos en tiempo real desde una única plataforma.\n\nAtajos: Ctrl+1–9 para módulos | Ctrl+H para inicio | Ctrl+T nueva pestaña | Ctrl+W cerrar pestaña | Ctrl+Tab cambiar de pestaña | Ctrl+N anotador | Ctrl+Shift+S captura\n\nWeb: estalingradocorp.qzz.io',
     buttons: ['Cerrar', 'Visitar Estalingrado Corp'],
     cancelId: 0,
     defaultId: 0
@@ -476,52 +665,14 @@ function mergeNotesStates(current, incoming) {
   return { state: base, added };
 }
 
-// ── Anotador (vista interna) ────────────────────────────────────────────────
+// ── Anotador (pestaña de herramienta) ───────────────────────────────────────
 function openNotes() {
-  if (!mainWindow || mainWindow.isDestroyed()) return;
-
-  if (!notesView || notesView.webContents.isDestroyed()) {
-    notesView = new WebContentsView({
-      webPreferences: {
-        preload: path.join(__dirname, 'notes-preload.js'),
-        contextIsolation: true,
-        nodeIntegration: false,
-        backgroundThrottling: false
-      }
-    });
-    notesView.webContents.loadFile(path.join(__dirname, 'notes.html'));
-  }
-
-  if (!notesVisible) {
-    mainWindow.contentView.addChildView(notesView);
-    notesVisible = true;
-  }
-
-  notesView.setBounds(contentBounds());
-  notesView.webContents.focus();
-  mainWindow.focus();
-  buildMenu();
+  openNotesTab();
 }
 
 function closeNotes() {
-  if (!notesView || !notesVisible) return;
-  try { mainWindow.contentView.removeChildView(notesView); } catch (e) {}
-  notesVisible = false;
-
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    if (siteView && !siteView.webContents.isDestroyed()) siteView.webContents.focus();
-    else mainWindow.webContents.focus();
-    mainWindow.focus();
-  }
-  buildMenu();
-}
-
-function destroyNotesView() {
-  if (!notesView) return;
-  const view = notesView;
-  notesView = null;
-  notesVisible = false;
-  destroyView(view);
+  const tab = notesTab();
+  if (tab) closeTab(tab.id);
 }
 
 // ── Capturas de pantalla ────────────────────────────────────────────────────
@@ -742,23 +893,8 @@ function registerNotesIpc() {
   });
 }
 
-function attachView(view, index) {
-  if (!mainWindow || mainWindow.isDestroyed()) { destroyView(view); return; }
-  if (siteView && siteView !== view) destroyView(siteView);
-  siteView = view;
-  pendingView = null;
-  mainWindow.contentView.addChildView(view);
-  view.setBounds(contentBounds());
-  mainWindow.setTitle(`Centinela BETA — ${SITES[index].name}`);
-  view.webContents.focus();
-  mainWindow.focus();
-}
-
-function loadSite(index) {
-  if (!mainWindow || mainWindow.isDestroyed() || index < 0 || index >= SITES.length) return;
-
-  const site = SITES[index];
-  const url = site.url;
+function createSiteTab(siteIndex) {
+  const site = SITES[siteIndex];
   const view = new WebContentsView({
     webPreferences: {
       contextIsolation: true,
@@ -769,63 +905,213 @@ function loadSite(index) {
     }
   });
   const wc = view.webContents;
+  attachModuleShortcuts(wc);
+  const tab = {
+    id: 'tab-' + (++tabSeq),
+    kind: 'site',
+    tool: '',
+    siteIndex,
+    title: site.name,
+    pageTitle: site.name,
+    url: site.url,
+    view,
+    loading: true
+  };
 
-  wc.setWindowOpenHandler(({ url: u }) => {
-    if (isAllowedUrl(u)) {
-      const i = findSiteIndex(u);
-      if (i >= 0) navigateTo(i);
-    } else {
-      shell.openExternal(u);
-    }
+  // Los enlaces a plataformas permitidas abren en una pestaña nueva; el resto, en el navegador.
+  wc.setWindowOpenHandler(({ url }) => {
+    const i = findSiteIndex(url);
+    if (i >= 0) openSiteTab(i);
+    else if (/^https?:\/\//i.test(url)) shell.openExternal(url);
     return { action: 'deny' };
   });
 
-  wc.on('will-navigate', (event, u) => {
-    if (!isAllowedUrl(u)) {
+  wc.on('will-navigate', (event, url) => {
+    if (!isAllowedUrl(url)) {
       event.preventDefault();
-      shell.openExternal(u);
+      if (/^https?:\/\//i.test(url)) shell.openExternal(url);
     }
   });
 
-  const stale = () => pendingView !== view;
-
-  wc.once('did-finish-load', () => {
-    if (stale()) { destroyView(view); return; }
-    attachView(view, index);
+  wc.on('did-start-loading', () => { tab.loading = true; pushTabsState(); });
+  wc.on('did-stop-loading', () => { tab.loading = false; pushTabsState(); buildMenu(); });
+  wc.on('page-title-updated', (event, title) => {
+    tab.pageTitle = title || site.name;
+    pushTabsState();
   });
-
-  wc.on('did-fail-load', (_e, code, _desc, _validatedURL, isMainFrame) => {
+  wc.on('did-navigate', (event, url) => { tab.url = url; pushTabsState(); });
+  wc.on('did-navigate-in-page', (event, url, isMainFrame) => {
+    if (isMainFrame) { tab.url = url; pushTabsState(); }
+  });
+  wc.on('did-fail-load', (event, code, _desc, _validatedURL, isMainFrame) => {
     if (!isMainFrame || code === -3) return; // -3 = abort
-    if (stale()) { destroyView(view); return; }
-    pendingView = null;
-    destroyView(view);
-    if (!siteView) mainWindow.setTitle('Centinela BETA — Inicio');
+    tab.loading = false;
+    tab.pageTitle = site.name + ' · sin conexión';
+    pushTabsState();
   });
 
-  if (pendingView) destroyView(pendingView);
-  pendingView = view;
-  wc.loadURL(url);
+  tabs.push(tab);
+  wc.loadURL(site.url);
+  return tab;
 }
 
-function goHome() {
-  if (!mainWindow || mainWindow.isDestroyed()) return;
-  closeNotes();
-  if (pendingView) { destroyView(pendingView); pendingView = null; }
-  if (siteView) { destroyView(siteView); siteView = null; }
-  currentSite = -1;
-  buildMenu();
-  mainWindow.setTitle('Centinela BETA — Inicio');
-  mainWindow.webContents.focus();
-  mainWindow.focus();
+function openSiteTab(siteIndex) {
+  if (!mainWindow || mainWindow.isDestroyed()) return null;
+  const i = Number(siteIndex);
+  if (!Number.isInteger(i) || i < 0 || i >= SITES.length) return null;
+
+  const existing = tabs.find(t => t.kind === 'site' && t.siteIndex === i);
+  if (existing) {
+    activateTab(existing.id);
+    return existing;
+  }
+
+  const tab = createSiteTab(i);
+  activateTab(tab.id);
+  return tab;
 }
 
-function navigateTo(index) {
-  if (!mainWindow || mainWindow.isDestroyed() || index < 0 || index >= SITES.length) return;
-  closeNotes();
-  currentSite = index;
-  buildMenu();
-  mainWindow.setTitle(`Centinela BETA — Cargando ${SITES[index].name}…`);
-  loadSite(index);
+function createNotesTab() {
+  if (!notesView || notesView.webContents.isDestroyed()) {
+    notesView = new WebContentsView({
+      webPreferences: {
+        preload: path.join(__dirname, 'notes-preload.js'),
+        contextIsolation: true,
+        nodeIntegration: false,
+        backgroundThrottling: false
+      }
+    });
+    notesView.webContents.loadFile(path.join(__dirname, 'notes.html'));
+    attachModuleShortcuts(notesView.webContents);
+  }
+
+  const tab = {
+    id: 'tab-' + (++tabSeq),
+    kind: 'tool',
+    tool: 'notes',
+    siteIndex: -1,
+    title: 'Anotador',
+    url: 'centinela://anotador',
+    view: notesView,
+    loading: false
+  };
+  tabs.push(tab);
+  return tab;
+}
+
+function openNotesTab() {
+  if (!mainWindow || mainWindow.isDestroyed()) return null;
+  const existing = notesTab();
+  if (existing) {
+    activateTab(existing.id);
+    return existing;
+  }
+  const tab = createNotesTab();
+  activateTab(tab.id);
+  return tab;
+}
+
+async function closeTab(id) {
+  const idx = tabs.findIndex(t => t.id === id);
+  if (idx < 0) return;
+  const tab = tabs[idx];
+  const wasActive = tab.id === activeTabId;
+
+  tabs.splice(idx, 1);
+  if (wasActive) activeTabId = null;
+
+  // El anotador se vacía antes de destruirse para no perder el último texto tipeado.
+  if (tab.kind === 'tool' && tab.tool === 'notes' && tab.view && !tab.view.webContents.isDestroyed()) {
+    try {
+      await tab.view.webContents.executeJavaScript('window.__anotadorFlush && window.__anotadorFlush()');
+    } catch (e) {}
+    if (notesView === tab.view) notesView = null;
+  }
+  destroyView(tab.view);
+
+  if (wasActive) {
+    const next = tabs[idx] || tabs[idx - 1] || null;
+    if (next) activateTab(next.id);
+    else {
+      detachViews();
+      updateWindowTitle();
+      pushTabsState();
+      buildMenu();
+    }
+  } else {
+    pushTabsState();
+    buildMenu();
+  }
+}
+
+function closeActiveTab() {
+  if (!activeTabId) {
+    showLauncher();
+    return;
+  }
+  closeTab(activeTabId);
+}
+
+function cycleTab(direction) {
+  if (tabs.length < 2) return;
+  const i = tabs.findIndex(t => t.id === activeTabId);
+  const next = (i + direction + tabs.length) % tabs.length;
+  activateTab(tabs[next].id);
+}
+
+function navBack() {
+  const wc = activeWebContents();
+  if (wc) wc.goBack();
+}
+
+function navForward() {
+  const wc = activeWebContents();
+  if (wc) wc.goForward();
+}
+
+function navReload(bypassCache) {
+  const wc = activeWebContents();
+  if (!wc) return;
+  if (bypassCache) wc.reloadIgnoringCache();
+  else wc.reload();
+}
+
+function zoomBy(delta, reset) {
+  const wc = activeWebContents();
+  if (!wc) return;
+  if (reset) { wc.setZoomFactor(1); return; }
+  let factor = 1;
+  try { factor = wc.getZoomFactor(); } catch (e) {}
+  wc.setZoomFactor(Math.min(2, Math.max(0.5, factor + delta)));
+}
+
+// Barra de direcciones: sólo se navega a las plataformas permitidas.
+// Cualquier otro destino se abre en el navegador del sistema.
+function navigateToUrl(raw) {
+  const input = String(raw || '').trim();
+  if (!input) return;
+
+  if (/^centinela:/i.test(input)) { showLauncher(); return; }
+
+  let target = input;
+  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(target)) target = 'https://' + target;
+
+  const idx = SITES.findIndex(s => getSiteOrigin(s.url) === getSiteOrigin(target));
+  if (idx >= 0) {
+    const tab = activeTab();
+    const wc = tab && tab.view && !tab.view.webContents.isDestroyed() ? tab.view.webContents : null;
+    if (wc) wc.loadURL(target);
+    else {
+      const opened = openSiteTab(idx);
+      if (opened && opened.view) opened.view.webContents.loadURL(target);
+    }
+    return;
+  }
+
+  if (/^https?:\/\//i.test(target)) {
+    shell.openExternal(target);
+    toastToLauncher('Destino no permitido → abierto en el navegador del sistema');
+  }
 }
 
 function createSplash() {
@@ -866,16 +1152,13 @@ function createMain() {
   });
 
   mainWindow.loadFile(path.join(__dirname, 'home.html'));
+  attachModuleShortcuts(mainWindow.webContents);
 
-  const layoutViews = () => {
-    const bounds = contentBounds();
-    if (siteView && !siteView.webContents.isDestroyed()) siteView.setBounds(bounds);
-    if (notesView && notesVisible && !notesView.webContents.isDestroyed()) notesView.setBounds(bounds);
-  };
+  const layoutViewsNow = () => layoutViews();
 
-  mainWindow.on('resize', layoutViews);
-  mainWindow.on('enter-full-screen', layoutViews);
-  mainWindow.on('leave-full-screen', layoutViews);
+  mainWindow.on('resize', layoutViewsNow);
+  mainWindow.on('enter-full-screen', layoutViewsNow);
+  mainWindow.on('leave-full-screen', layoutViewsNow);
 
   const reveal = () => {
     if (splashWindow && !splashWindow.isDestroyed()) splashWindow.close();
@@ -890,14 +1173,16 @@ function createMain() {
   mainWindow.webContents.once('did-finish-load', () => {
     const wait = Math.max(0, SPLASH_MIN_MS - (Date.now() - started));
     setTimeout(reveal, wait);
+    pushTabsState();
   });
 
   setTimeout(reveal, SPLASH_MIN_MS + 10000);
 
   mainWindow.on('closed', () => {
-    destroyView(pendingView); pendingView = null;
-    destroyView(siteView); siteView = null;
-    destroyNotesView();
+    for (const t of tabs) destroyView(t.view);
+    tabs = [];
+    activeTabId = null;
+    notesView = null;
     mainWindow = null;
     if (splashWindow && !splashWindow.isDestroyed()) splashWindow.close();
   });
@@ -913,10 +1198,53 @@ app.whenReady().then(async () => {
   startNewsFeed();
 
   ipcMain.on('navigate', (event, index) => {
-    if (index === -1) goHome(); else navigateTo(index);
+    const i = Number(index);
+    if (i === -1) showLauncher();
+    else openSiteTab(i);
   });
 
-  ipcMain.handle('get-current', () => currentSite);
+  ipcMain.handle('get-current', () => currentSiteIndex());
+
+  // ── Navegador con pestañas ────────────────────────────────────────────────
+  ipcMain.handle('tabs:get', () => tabsState());
+
+  ipcMain.on('tabs:activate', (event, id) => activateTab(String(id || '')));
+
+  ipcMain.on('tabs:close', (event, id) => closeTab(String(id || '')));
+
+  ipcMain.on('tabs:new', () => showLauncher());
+
+  ipcMain.on('tabs:cycle', (event, dir) => cycleTab(Number(dir) >= 0 ? 1 : -1));
+
+  ipcMain.on('nav:back', () => navBack());
+
+  ipcMain.on('nav:forward', () => navForward());
+
+  ipcMain.on('nav:reload', () => navReload(false));
+
+  ipcMain.on('nav:reload-bypass', () => navReload(true));
+
+  ipcMain.on('nav:home', () => showLauncher());
+
+  ipcMain.on('nav:go', (event, url) => navigateToUrl(url));
+
+  ipcMain.on('nav:focus-url', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('focus-url');
+  });
+
+  // El renderizador informa el alto real de la barra del navegador.
+  ipcMain.on('chrome:height', (event, height) => {
+    const value = Math.round(Number(height) || 0);
+    if (!value || value < 40 || value > 400) return;
+    if (Math.abs(value - chromeHeight) < 1) return;
+    chromeHeight = value;
+    layoutViews();
+  });
+
+  ipcMain.on('encrypt:set', (event, on) => {
+    encryptionOn = !!on;
+    buildMenu();
+  });
 
   ipcMain.handle('news:get', () => newsItems);
 

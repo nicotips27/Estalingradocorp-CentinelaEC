@@ -14,33 +14,43 @@ Licencia: MIT
 
 DESCRIPCION
 -----------
-Centinela BETA es un wrapper de escritorio construido con Electron que permite acceder rapidamente a diez plataformas de monitoreo e inteligencia desde vistas dedicadas, sin necesidad de un navegador web. Incluye pantalla de carga, lanzador con tarjetas, fondo de estrellas animado, bloqueo de anuncios y menu nativo de Windows.
+Centinela BETA es un wrapper de escritorio construido con Electron que permite acceder rapidamente a nueve plataformas de monitoreo e inteligencia desde un navegador propio con pestanas, sin necesidad de un navegador web. Incluye pantalla de carga, lanzador de modulos, barra de pestanas y direcciones, bloqueo de anuncios y menu nativo de Windows.
 
 CARACTERISTICAS PRINCIPALES
 ---------------------------
-- Interfaz con tematica azul y negro
-- Pantalla de inicio (home.html) con tarjetas de plataformas
+- Interfaz con estetica dark tipo terminal Kali Linux (fondo #07090c, monoespaciada, acentos azul/verde/rojo/cian)
+- Navegador propio con pestanas: barra de pestanas + barra de direcciones, historial, recarga y zoom
+- Las 9 plataformas NO estan en el menu nativo: se abren como pestanas dentro de una sola ventana
+- Cada pestana conserva su WebContentsView (se desengancha al cambiar y se reengancha al activar),
+  preservando scroll, formularios y sesion
+- El alto real de la barra del navegador se informa por IPC (chrome:height) y las vistas se
+  posicionan debajo (y = chromeHeight)
+- Lanzador de modulos (home.html) con tarjetas, reloj, estado de conexion e interruptor Encriptar
 - Pantalla de carga/splash (splash.html)
-- Menu nativo: Centinela, Ver, Ayuda
-- Atajos: Ctrl+1 - Ctrl+9, Ctrl+H (Inicio), Ctrl+R, F11, F12, F1
+- Menu nativo reorganizado en 4 secciones: Centinela, Ver, Herramientas, Ayuda
+- Atajos: Ctrl+1 - Ctrl+9 (globales via before-input-event), Ctrl+H (Inicio), Ctrl+T (nueva pestana),
+  Ctrl+W (cerrar pestana), Ctrl+Tab/Ctrl+Shift+Tab (cambiar pestana), Ctrl+L (barra de direcciones),
+  Ctrl+N (Anotador), Ctrl+R, Ctrl+Shift+R, Ctrl+Shift+S, F11, F12, F1
+- La barra de direcciones solo navega a plataformas permitidas (coincidencia por origen);
+  cualquier otro destino se abre en el navegador del sistema con aviso toast
 - Bloqueo de anuncios integrado (@cliqz/adblocker-electron)
 - Seguridad: contextIsolation true, nodeIntegration false, sandbox true en vistas de sitio
 - Modal Sobre el programa en Ayuda
-- Anotador de notas (menu Centinela o boton del inicio, Ctrl+N): vista interna de la app
-  (no abre ventana ni saca de pantalla completa), varias notas, autoguardado local,
-  buscador, notas fijadas, exportacion a .txt (individual y masiva), importacion de
-  copias y restauracion
+- Anotador de notas como PESTANA de herramienta (menu Herramientas o Ctrl+N): no abre ventanas ni
+  saca de pantalla completa, varias notas, autoguardado local, buscador, notas fijadas, exportacion
+  a .txt (individual y masiva), importacion de copias y restauracion
+- Al cerrar la pestana del anotador se ejecuta window.__anotadorFlush() (guardado sincronico)
+  para no perder lo ultimo tipeado
 - Las notas se guardan FUERA de la carpeta de datos de Electron, en %APPDATA%\Centinela\notas
   (anotador.json + espejo notas.txt + copias\), para que NO se pierdan al reinstalar
   (NSIS borra %APPDATA%\centinela-beta por defecto: deleteAppDataOnUninstall = false)
 - Capturas de pantalla (menu Ver o boton Captura, Ctrl+Shift+S): guarda la ventana completa
   en Imagenes\Centinela Capturas y la copia al portapapeles
 - Indicador Encriptar la Intra-Net con LED y switch funcional
-- Fondo de estrellas animado via canvas 2D
 - Monitoreo de conectividad por plataforma via peticiones HEAD
 - Pantalla completa por defecto al iniciar
 - User-Agent de Chrome 124 para evitar bloqueos anti-bot (Cloudflare)
-- Arquitectura WebContentsView: vistas aisladas por plataforma
+- Arquitectura WebContentsView: vistas aisladas por pestana
 - Reenvio de enlaces externos al navegador del sistema
 - Icono de la app: "C" con aguja de brujula azul sobre fondo oscuro con borde azul
   (fuente: Imagenes\Iconos\icono\icono.png, generado por make-icon.js)
@@ -99,8 +109,8 @@ TECNOLOGIAS UTILIZADAS
 INSTALADOR GENERADO
 -------------------
 Ruta: dist\Centinela BETA Setup 1.0.0.exe
-Tamano: ~75.4 MB (79.091.899 bytes)
-Fecha generacion: 18/11/2026 19:47
+Tamano: ~75.4 MB (79.097.016 bytes)
+Fecha generacion: 25/11/2026 11:59
 Comando: npm run dist
 Assets del release v1.0.0 actualizados en GitHub (exe + blockmap + latest.yml).
 
@@ -198,3 +208,58 @@ TAREA PENDIENTE
 ---------------
 SE DEBE INTEGRAR UN AGENTE IA LOCAL PARA QUE TRABAJE DENTRO DEL PROGRAMA.
 Se recomienda evaluar e integrar un agente de IA local (ej. Ollama + LLM local, LM Studio, Open WebUI, LocalAI, AnythingLLM, Jan u otra opcion) que pueda operar de forma local sin depender de APIs externas. Esta integracion queda pendiente de implementacion y configuracion.
+
+25/11/2026 - REDISENO TIPO KALI LINUX + NAVEGADOR DE PESTANAS
+--------------------------------------------------------------
+Objetivo: llevar toda la interfaz a una estetica dark de terminal Kali Linux y meter las 9
+plataformas dentro de un navegador con pestanas, dejando el menu nativo libre para mas
+herramientas.
+
+Motor de pestanas (main.js):
+  - createSiteTab / openSiteTab / createNotesTab / openNotesTab / closeTab / closeActiveTab
+  - cycleTab / activateTab / showLauncher / detachViews / tabsState / pushTabsState
+  - layoutViews / pageBounds: las vistas se posicionan debajo de la barra del navegador
+  - La barra del navegador vive en home.html; el renderizador informa el alto real via IPC
+    chrome:height y el proceso principal coloca las vistas en y = chromeHeight
+  - Al cambiar de pestana la WebContentsView se desengancha (setVisible(false)) y al activarse
+    se reengancha, conservando scroll, formularios y sesion
+  - Sin pestanas activas se ve el lanzador de modulos
+  - El Anotador pasa a ser pestana de herramienta (kind:'tool', tool:'notes'); closeTab ejecuta
+    window.__anotadorFlush() antes de destruirla para no perder texto tipeado
+  - Barra de direcciones: solo navega a plataformas permitidas (coincidencia por origen);
+    cualquier otro destino se abre con shell.openExternal y se avisa con un toast
+  - Titulo de pestana = nombre de la plataforma; el pageTitle real queda en el tooltip
+  - Atajos Ctrl+1-9 registrados globalmente con before-input-event (attachModuleShortcuts),
+    porque al sacar las plataformas del menu se perdian
+
+Interfaz (home.html + notes.html):
+  - Paleta Kali: bg #07090c, paneles #0d1014/#141920, lineas #232a33, azul #367bf0/#5b9bff,
+    verde #35d07f, rojo #ff4d4f, amarillo #e3b341, cian #3fc9d4
+  - Tipografia monoespaciada (JetBrains Mono / Fira Code / Cascadia Mono / Consolas)
+  - Bordes rectos (radio 0-2px) y prompt root@centinela:
+  - Barra de pestanas + barra de direcciones arriba; boton "+" pegado a la ultima pestana
+  - Lanzador en grilla con 9 tarjetas (imagen, nombre, descripcion, atajo, estado online)
+  - notes.html re-estilizado con la misma paleta + window.__anotadorFlush()
+
+Menu nativo (main.js), reorganizado en 4 secciones para liberar espacio:
+  - Centinela: Inicio, Nueva pestana, Cerrar pestana, Pestana siguiente/anterior, Salir
+  - Ver: Recargar, Recargar sin cache, Atras/Adelante, Zoom, DevTools, Pantalla completa,
+    carpeta capturas
+  - Herramientas: Anotador, Captura, carpeta notas, Restaurar copia de notas,
+    Encriptar la Intra-Net, Vaciar cache
+  - Ayuda:Sobre el programa y accesos a las webs
+
+Verificaciones:
+  - node --check OK en main.js, preload.js, notes-preload.js y en los scripts inline de
+    home.html y notes.html
+  - Handler de debug debug:layout eliminado de main.js y preload.js antes del release
+  - Layout real medido: chromeHeight=79px, contentSize 1360x742, pageBounds y=79 height=663
+  - Ejecucion real (CDP): 3 pestanas de sitio coexisten, switch por clic y por ciclo,
+    URL y bandera SECURE se actualizan, el Anotador aparece como 4ta pestana
+  - Capturas reales de pantalla: barra Kali arriba y sitio debajo (scr-launcher / scr-sitio)
+  - Build empaquetado (dist\win-unpacked\Centinela BETA.exe) testeado via CDP: 3 pestanas,
+    cambio por clic y por ciclo, anotador como pestana, cierre con x y nota persistida en
+    %APPDATA%\Centinela\notas\anotador.json
+  - Instalador regenerado con npm run dist (79.097.016 bytes, 25/11/2026 11:59)
+  - README actualizado (nueva seccion "Navegador de pestanas", atajos, menu Herramientas,
+    estilo Kali)
