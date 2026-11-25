@@ -113,9 +113,10 @@ TECNOLOGIAS UTILIZADAS
 INSTALADOR GENERADO
 -------------------
 Ruta: dist\Centinela BETA Setup 1.0.0.exe
-Tamano: ~75.4 MB (79.097.016 bytes)
-Fecha generacion: 25/11/2026 11:59
+Tamano: ~75.4 MB (79.097.501 bytes)
+Fecha generacion: 25/11/2026 17:35
 Comando: npm run dist
+SHA256: 15834AB2EFE9FD6B8424918996DC85D284A8E52F758A7BE0153A3329043B640A
 Assets del release v1.0.0 actualizados en GitHub (exe + blockmap + latest.yml).
 
 VERIFICACIONES
@@ -306,3 +307,12 @@ Verificaciones (desarrollo, via CDP):
   - Procesos de navegadores del sistema (brave/firefox/chrome/edge): 27 antes y 27 despues,
     o sea que NO se lanzo ninguno
   - Captura de la barra de pestanas con iconos de globo y bandera WEB
+
+Verificaciones (build empaquetado, dist\win-unpacked\Centinela BETA.exe, via CDP):
+  - Mismos 5 pasos OK: plataforma, URL arbitraria en la misma pestana, popup como pestana
+    interna, noticia como pestana interna, anotador como pestana
+  - Anotador: al cerrar la pestana la nota quedo persistida en
+    %APPDATA%\Centinela\notas\anotador.json
+  - Navegadores del sistema: 27 antes y 27 despues (ninguno lanzado)
+  - Instalador regenerado con npm run dist (79.097.501 bytes, 25/11/2026 17:35),
+    commit dada3b8 y assets del release v1.0.0 actualizados
