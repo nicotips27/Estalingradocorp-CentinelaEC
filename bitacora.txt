@@ -31,8 +31,12 @@ CARACTERISTICAS PRINCIPALES
 - Atajos: Ctrl+1 - Ctrl+9 (globales via before-input-event), Ctrl+H (Inicio), Ctrl+T (nueva pestana),
   Ctrl+W (cerrar pestana), Ctrl+Tab/Ctrl+Shift+Tab (cambiar pestana), Ctrl+L (barra de direcciones),
   Ctrl+N (Anotador), Ctrl+R, Ctrl+Shift+R, Ctrl+Shift+S, F11, F12, F1
-- La barra de direcciones solo navega a plataformas permitidas (coincidencia por origen);
-  cualquier otro destino se abre en el navegador del sistema con aviso toast
+- La barra de direcciones acepta CUALQUIER URL y navega DENTRO de la app (en la pestana activa o
+  en una nueva). Los links target=_blank / window.open abren pestanas internas. Las noticias del
+  teleprompter, los links del menu Ayuda y "Visitar Estalingrado Corp" tambien. NO se usa mas
+  shell.openExternal: el navegador del sistema queda fuera de Centinela
+- Las pestanas de plataforma que navegan a otro sitio pasan a ser "web libre" (icono de globo,
+  bandera WEB)
 - Bloqueo de anuncios integrado (@cliqz/adblocker-electron)
 - Seguridad: contextIsolation true, nodeIntegration false, sandbox true en vistas de sitio
 - Modal Sobre el programa en Ayuda
@@ -263,3 +267,42 @@ Verificaciones:
   - Instalador regenerado con npm run dist (79.097.016 bytes, 25/11/2026 11:59)
   - README actualizado (nueva seccion "Navegador de pestanas", atajos, menu Herramientas,
     estilo Kali)
+
+25/11/2026 - CENTINELA PASA A SER EL UNICO NAVEGADOR
+-----------------------------------------------------
+Pedido: que TODAS las webs se abran dentro de la app y no se use el navegador del sistema.
+
+Cambios en main.js:
+  - createWebTab(url, opts): pestana generica. siteIndex >= 0 = una de las 9 plataformas;
+    siteIndex = -1 = web libre (cualquier URL http/https)
+  - openWebTab(url): abre una URL cualquiera en una pestana interna y la activa
+  - setWindowOpenHandler: los links que piden ventana nueva (target=_blank, window.open)
+    abren pestana INTERNA (si es una plataforma, openSiteTab; si no, openWebTab)
+  - will-navigate: se permite navegar libremente dentro de la pestana; solo se bloquean los
+    protocolos que no son web (mailto:, file:) con un toast
+  - did-navigate / did-navigate-in-page: si la pestana sale de su plataforma, pasa a kind 'web'
+    y el titulo pasa a ser el host
+  - navigateToUrl: cualquier URL http/https se navega en la pestana activa; si no hay pestana
+    de web activa, se abre una nueva. Ya no existe el "Destino no permitido"
+  - normalizeWebUrl() y hostOf(): helpers nuevos
+  - Menu Ayuda: los links de las 9 plataformas abren pestanas internas (antes shell.openExternal)
+  - Modal "Sobre el programa": "Visitar Estalingrado Corp" abre pestana interna
+  - IPC 'open-external' eliminado; nuevo 'tabs:open-url' (preload: window.centinela.openTab)
+  - shell.openExternal: 0 usos restantes en todo el proyecto
+
+Cambios en home.html:
+  - Icono de globo (WEB_ICON) para las pestanas de web libre; bandera 'WEB' en cian
+  - El host no se repite en las pestanas web (el titulo ya es el host)
+  - Texto del candado y del input actualizados: todo se abre dentro de Centinela
+  - Teleprompter: los titulares usan window.centinela.openTab()
+
+Verificaciones (desarrollo, via CDP):
+  - Plataforma abierta: 1 pestana kind 'site', input 'radio.garden', bandera SECURE
+  - URL arbitraria en la barra: navega en la MISMA pestana (sigue habiendo 1), la pestana pasa a
+    kind 'web', input 'example.com', bandera WEB
+  - window.open('https://example.org/ventana-nueva'): pestana interna nueva (2 pestanas)
+  - Noticia del teleprompter (elpais.com): pestana interna nueva (3 pestanas)
+  - URL escrita a mano (wikipedia.org): navega en la pestana activa (siguen siendo 3 pestanas)
+  - Procesos de navegadores del sistema (brave/firefox/chrome/edge): 27 antes y 27 despues,
+    o sea que NO se lanzo ninguno
+  - Captura de la barra de pestanas con iconos de globo y bandera WEB

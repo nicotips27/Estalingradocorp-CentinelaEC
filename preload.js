@@ -17,7 +17,8 @@ contextBridge.exposeInMainWorld('centinela', {
   // Navegación
   selectSite: (index) => ipcRenderer.send('navigate', index),
   getCurrent: () => ipcRenderer.invoke('get-current'),
-  openExternal: (url) => ipcRenderer.send('open-external', url),
+  // Abre cualquier URL en una pestaña INTERNA del navegador de Centinela.
+  openTab: (url) => ipcRenderer.send('tabs:open-url', url),
 
   // Pestañas
   getTabs: () => ipcRenderer.invoke('tabs:get'),

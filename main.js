@@ -48,8 +48,21 @@ function findSiteIndex(url) {
   return SITES.findIndex(s => getSiteOrigin(s.url) === origin);
 }
 
-function isAllowedUrl(url) {
-  return findSiteIndex(url) >= 0;
+// Normaliza lo que se escribe en la barra de direcciones.
+// Devuelve null si no es una URL http/https válida.
+function normalizeWebUrl(raw) {
+  let input = String(raw || '').trim();
+  if (!input || /^centinela:/i.test(input)) return null;
+  if (!/^[a-z][a-z0-9+.-]*:/i.test(input)) input = 'https://' + input;
+  try {
+    const u = new URL(input);
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
+    return u.href;
+  } catch (e) { return null; }
+}
+
+function hostOf(url) {
+  try { return new URL(url).hostname.replace(/^www\./, ''); } catch (e) { return ''; }
 }
 
 // ── Teleprompter de noticias de última hora ────────────────────────────────
@@ -434,7 +447,8 @@ function buildMenu() {
       submenu: [
         { label: 'Sobre el programa', accelerator: 'F1', click: showAbout },
         { type: 'separator' },
-        ...SITES.map(s => ({ label: s.name, click: () => shell.openExternal(s.url) }))
+        { label: 'Abrir plataforma en una pestaña', enabled: false },
+        ...SITES.map((s, i) => ({ label: s.name, click: () => openSiteTab(i) }))
       ]
     }
   ]);
@@ -469,7 +483,7 @@ function showAbout() {
     cancelId: 0,
     defaultId: 0
   }).then(({ response }) => {
-    if (response === 1) shell.openExternal('https://estalingradocorp.qzz.io/');
+    if (response === 1) openWebTab('https://estalingradocorp.qzz.io/');
   });
 }
 
@@ -893,8 +907,13 @@ function registerNotesIpc() {
   });
 }
 
-function createSiteTab(siteIndex) {
-  const site = SITES[siteIndex];
+// Crea una vista de navegación y la registra como pestaña.
+// siteIndex >= 0 → es una de las 9 plataformas; siteIndex = -1 → es una web
+// libre (cualquier URL http/https) abierta dentro del mismo navegador.
+function createWebTab(url, opts = {}) {
+  const siteIndex = typeof opts.siteIndex === 'number' ? opts.siteIndex : -1;
+  const startUrl = normalizeWebUrl(url) || url;
+  const fallbackTitle = opts.title || hostOf(startUrl) || 'Web';
   const view = new WebContentsView({
     webPreferences: {
       contextIsolation: true,
@@ -908,50 +927,86 @@ function createSiteTab(siteIndex) {
   attachModuleShortcuts(wc);
   const tab = {
     id: 'tab-' + (++tabSeq),
-    kind: 'site',
+    kind: siteIndex >= 0 ? 'site' : 'web',
     tool: '',
     siteIndex,
-    title: site.name,
-    pageTitle: site.name,
-    url: site.url,
+    title: fallbackTitle,
+    pageTitle: fallbackTitle,
+    url: startUrl,
     view,
     loading: true
   };
 
-  // Los enlaces a plataformas permitidas abren en una pestaña nueva; el resto, en el navegador.
-  wc.setWindowOpenHandler(({ url }) => {
-    const i = findSiteIndex(url);
-    if (i >= 0) openSiteTab(i);
-    else if (/^https?:\/\//i.test(url)) shell.openExternal(url);
+  // Los links que piden una ventana nueva se abren como PESTÁÑA INTERNA:
+  // nunca se delega al navegador del sistema.
+  wc.setWindowOpenHandler(({ url: openUrl }) => {
+    if (/^https?:\/\//i.test(openUrl)) {
+      const i = findSiteIndex(openUrl);
+      if (i >= 0) openSiteTab(i);
+      else openWebTab(openUrl);
+    }
     return { action: 'deny' };
   });
 
-  wc.on('will-navigate', (event, url) => {
-    if (!isAllowedUrl(url)) {
+  // La navegación dentro de la pestaña se permite (como en un navegador);
+  // los protocolos que no son web (mailto:, file:, etc.) se bloquean.
+  wc.on('will-navigate', (event, navUrl) => {
+    if (!/^https?:\/\//i.test(navUrl)) {
       event.preventDefault();
-      if (/^https?:\/\//i.test(url)) shell.openExternal(url);
+      toastToLauncher('Protocolo no permitido: ' + String(navUrl).split(':')[0]);
     }
   });
 
   wc.on('did-start-loading', () => { tab.loading = true; pushTabsState(); });
   wc.on('did-stop-loading', () => { tab.loading = false; pushTabsState(); buildMenu(); });
   wc.on('page-title-updated', (event, title) => {
-    tab.pageTitle = title || site.name;
+    tab.pageTitle = title || fallbackTitle;
     pushTabsState();
   });
-  wc.on('did-navigate', (event, url) => { tab.url = url; pushTabsState(); });
-  wc.on('did-navigate-in-page', (event, url, isMainFrame) => {
-    if (isMainFrame) { tab.url = url; pushTabsState(); }
+  wc.on('did-navigate', (event, navUrl) => {
+    tab.url = navUrl;
+    // Si la pestaña sale de su plataforma, pasa a ser una web libre.
+    if (tab.kind === 'site' && findSiteIndex(navUrl) < 0) {
+      tab.kind = 'web';
+      tab.siteIndex = -1;
+    }
+    if (tab.kind === 'web') tab.title = hostOf(navUrl) || tab.title;
+    pushTabsState();
+  });
+  wc.on('did-navigate-in-page', (event, navUrl, isMainFrame) => {
+    if (!isMainFrame) return;
+    tab.url = navUrl;
+    if (tab.kind === 'site' && findSiteIndex(navUrl) < 0) {
+      tab.kind = 'web';
+      tab.siteIndex = -1;
+    }
+    if (tab.kind === 'web') tab.title = hostOf(navUrl) || tab.title;
+    pushTabsState();
   });
   wc.on('did-fail-load', (event, code, _desc, _validatedURL, isMainFrame) => {
     if (!isMainFrame || code === -3) return; // -3 = abort
     tab.loading = false;
-    tab.pageTitle = site.name + ' · sin conexión';
+    tab.pageTitle = fallbackTitle + ' · sin conexión';
     pushTabsState();
   });
 
   tabs.push(tab);
-  wc.loadURL(site.url);
+  wc.loadURL(startUrl);
+  return tab;
+}
+
+function createSiteTab(siteIndex) {
+  const site = SITES[siteIndex];
+  return createWebTab(site.url, { siteIndex, title: site.name });
+}
+
+// Abre cualquier URL en una pestaña interna del navegador.
+function openWebTab(url) {
+  if (!mainWindow || mainWindow.isDestroyed()) return null;
+  const target = normalizeWebUrl(url);
+  if (!target) return null;
+  const tab = createWebTab(target, { title: hostOf(target) });
+  activateTab(tab.id);
   return tab;
 }
 
@@ -1085,33 +1140,28 @@ function zoomBy(delta, reset) {
   wc.setZoomFactor(Math.min(2, Math.max(0.5, factor + delta)));
 }
 
-// Barra de direcciones: sólo se navega a las plataformas permitidas.
-// Cualquier otro destino se abre en el navegador del sistema.
+// Barra de direcciones: cualquier sitio se abre DENTRO del navegador.
+// Si hay una pestaña de web activa se navega en ella; si no, se abre una nueva.
 function navigateToUrl(raw) {
   const input = String(raw || '').trim();
   if (!input) return;
 
   if (/^centinela:/i.test(input)) { showLauncher(); return; }
 
-  let target = input;
-  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(target)) target = 'https://' + target;
-
-  const idx = SITES.findIndex(s => getSiteOrigin(s.url) === getSiteOrigin(target));
-  if (idx >= 0) {
-    const tab = activeTab();
-    const wc = tab && tab.view && !tab.view.webContents.isDestroyed() ? tab.view.webContents : null;
-    if (wc) wc.loadURL(target);
-    else {
-      const opened = openSiteTab(idx);
-      if (opened && opened.view) opened.view.webContents.loadURL(target);
-    }
+  const target = normalizeWebUrl(input);
+  if (!target) {
+    toastToLauncher('Destino inválido');
     return;
   }
 
-  if (/^https?:\/\//i.test(target)) {
-    shell.openExternal(target);
-    toastToLauncher('Destino no permitido → abierto en el navegador del sistema');
+  const tab = activeTab();
+  const wc = tab && tab.kind !== 'tool' && tab.view && !tab.view.webContents.isDestroyed()
+    ? tab.view.webContents : null;
+  if (wc) {
+    wc.loadURL(target);
+    return;
   }
+  openWebTab(target);
 }
 
 function createSplash() {
@@ -1252,9 +1302,7 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('app:capture', () => takeScreenshot());
 
-  ipcMain.on('open-external', (event, url) => {
-    if (typeof url === 'string' && /^https?:\/\//i.test(url)) shell.openExternal(url);
-  });
+  ipcMain.on('tabs:open-url', (event, url) => { openWebTab(url); });
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createMain();
