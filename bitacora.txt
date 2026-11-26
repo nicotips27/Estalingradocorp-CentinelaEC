@@ -275,6 +275,32 @@ Verificaciones (build empaquetado, dist\win-unpacked\METATRON.exe, via CDP):
   - Mismos pasos OK: arranque con 1 pestaña, + x2 -> 3, Ctrl+T -> 4, cerrar/reabrir,
     Ctrl+clic en segundo plano, URL completa y favicons reales
 
+26/11/2026 - CAJON OSINT COMPACTADO
+-----------------------------------
+Pedido del usuario: "haz que los botones del menu osint sean mas pequeños asi no estorban
+tanto la vista".
+
+Cambios (solo CSS de home.html, sin tocar el DOM ni el JS):
+  - .drawer: padding 9/11px -> 6/7px
+  - .drawer-head: margen 8px -> 6px; tag 11px -> 10px; sub 10px -> 9px; cerrar 20px -> 17px
+  - .pcard: padding 6px 8px -> 3px 6px; gap 8px -> 6px; icono (ptile) 26px -> 19px
+  - .pname 11px -> 10px; .phost 9.5px -> 8.5px
+  - .pinfo pasa de columna a FILA (nombre + host en una sola linea), con el nombre
+    flexible y el host truncado al 55%
+  - .drawer-grid: minmax(178px) -> minmax(160px), gap 6px -> 4px, max-height 148px -> 96px
+  - .drawer-add y .add-input/.add-btn: margenes 9px -> 6px, altos 26px -> 22px,
+    .add-input.name 150px -> 118px
+
+Medido con la app corriendo (CDP):
+  - chrome con cajon abierto: 259px -> 209px (cajon 181px -> 130px)
+  - tarjeta: ~38px -> 27px; grilla con 10 paginas: 2 filas, 58px
+  - chrome con cajon cerrado: 79px (sin cambios)
+  - Todo sigue funcionando: 10 tarjetas, AGREGAR WEB deja 11 ("1 agregadas por vos"),
+    clic en tarjeta abre la pestana
+  - Captura real de pantalla verificada: cajon compacto, web mucho mas grande
+  - Instalador regenerado con npm run dist: METATRON Setup 1.0.0.exe (79.100.481 bytes,
+    26/11/2026 20:07, SHA256 F46DC1CEB3D459B252F5C65444CC1CF9114418E23BE6B2244C539DF3F3BB30C4)
+
 26/11/2026 - RENOMBRADO A METATRON + CAJON OSINT
 --------------------------------------------------
 Pedido: renombrar Centinela por METATRON en todo el proyecto, que todas las paginas esten en un

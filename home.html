@@ -196,64 +196,66 @@
     display:none;
     border-top:1px solid var(--line);
     background:linear-gradient(180deg,#0b0f14,#090c10);
-    padding:9px 12px 11px 12px;
+    padding:6px 12px 7px 12px;
   }
   .drawer.open { display:block; }
-  .drawer-head { display:flex; align-items:baseline; gap:10px; margin-bottom:8px; }
-  .drawer-head .tag { color:var(--cyan); font-size:11px; letter-spacing:.24em; }
-  .drawer-head .sub { color:var(--text-3); font-size:10px; }
+  .drawer-head { display:flex; align-items:baseline; gap:10px; margin-bottom:6px; }
+  .drawer-head .tag { color:var(--cyan); font-size:10px; letter-spacing:.24em; }
+  .drawer-head .sub { color:var(--text-3); font-size:9px; }
   .drawer-close {
-    width:20px; height:20px; flex:none; display:grid; place-items:center;
+    width:17px; height:17px; flex:none; display:grid; place-items:center;
     background:var(--bg-2); border:1px solid var(--line); color:var(--text-3);
-    cursor:pointer; font-size:11px; line-height:1; transition: var(--transition);
+    cursor:pointer; font-size:10px; line-height:1; transition: var(--transition);
   }
   .drawer-close:hover { border-color:var(--red); color:var(--red); }
 
+  /* Filas compactas: la idea es que el cajón ocupe poco y la web se vea grande */
   .drawer-grid {
-    display:grid; grid-template-columns:repeat(auto-fill,minmax(178px,1fr)); gap:6px;
-    max-height:148px; overflow-y:auto; padding-right:2px;
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:4px;
+    max-height:96px; overflow-y:auto; padding-right:2px;
   }
   .drawer-grid::-webkit-scrollbar { width:8px; }
   .drawer-grid::-webkit-scrollbar-track { background:var(--bg); }
   .drawer-grid::-webkit-scrollbar-thumb { background:var(--line-2); border:2px solid var(--bg); }
   .pcard {
-    display:flex; align-items:center; gap:8px; padding:6px 8px; cursor:pointer;
+    display:flex; align-items:center; gap:6px; padding:3px 6px; cursor:pointer;
     background:var(--bg-2); border:1px solid var(--line);
     transition: border-color var(--transition), background var(--transition);
   }
   .pcard:hover { border-color:var(--blue); background:var(--bg-3); }
   .pcard .ptile {
-    width:26px; height:26px; flex:none; display:grid; place-items:center;
+    width:19px; height:19px; flex:none; display:grid; place-items:center;
     background:var(--bg); border:1px solid var(--line-2); overflow:hidden; color:var(--cyan);
   }
   .pcard .ptile img { width:100%; height:100%; object-fit:cover; display:block; }
-  .pcard .ptile svg { width:13px; height:13px; }
-  .pcard .pinfo { min-width:0; flex:1; display:flex; flex-direction:column; gap:2px; }
-  .pcard .pname { font-size:11px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .pcard .phost { font-size:9.5px; color:var(--text-3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .pcard .ptile svg { width:11px; height:11px; }
+  /* Nombre y host en una sola línea: la tarjeta queda baja y no tapa la web */
+  .pcard .pinfo { min-width:0; flex:1; display:flex; flex-direction:row; align-items:baseline; gap:6px; }
+  .pcard .pname { font-size:10px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0; }
+  .pcard .phost { font-size:8.5px; color:var(--text-3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:none; max-width:55%; }
   .pcard .px {
-    flex:none; width:16px; height:16px; display:grid; place-items:center;
-    color:var(--text-3); opacity:0; font-size:12px; transition: var(--transition);
+    flex:none; width:14px; height:14px; display:grid; place-items:center;
+    color:var(--text-3); opacity:0; font-size:11px; transition: var(--transition);
   }
   .pcard:hover .px { opacity:1; }
   .pcard .px:hover { color:var(--red); }
 
   .drawer-add {
-    display:flex; align-items:center; gap:8px; margin-top:9px; padding-top:9px;
+    display:flex; align-items:center; gap:6px; margin-top:6px; padding-top:6px;
     border-top:1px solid var(--line);
   }
-  .add-label { font-size:9px; letter-spacing:.2em; color:var(--text-3); flex:none; }
+  .add-label { font-size:8.5px; letter-spacing:.2em; color:var(--text-3); flex:none; }
   .add-input {
-    height:26px; padding:0 8px; background:var(--bg); border:1px solid var(--line);
-    color:var(--text); font-size:11px; outline:none; min-width:0;
+    height:22px; padding:0 7px; background:var(--bg); border:1px solid var(--line);
+    color:var(--text); font-size:10px; outline:none; min-width:0;
   }
   .add-input:focus { border-color:var(--blue); box-shadow:0 0 0 1px rgba(54,123,240,.2); }
-  .add-input.name { width:150px; flex:none; }
+  .add-input.name { width:118px; flex:none; }
   .add-input.url { flex:1; }
   .add-btn {
-    height:26px; padding:0 13px; flex:none; cursor:pointer;
+    height:22px; padding:0 11px; flex:none; cursor:pointer;
     background:var(--bg-2); border:1px solid var(--blue); color:var(--blue-2);
-    font-size:10px; letter-spacing:.12em; transition: var(--transition);
+    font-size:9.5px; letter-spacing:.12em; transition: var(--transition);
   }
   .add-btn:hover { background:var(--blue-dim); color:#8fbaff; }
 
