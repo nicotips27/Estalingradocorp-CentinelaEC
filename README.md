@@ -29,11 +29,11 @@ Características principales:
 
 - **Navegador propio con pestañas**: cada plataforma se abre como una pestaña, con barra de direcciones, historial (atrás/adelante), recarga y zoom.
 - Cada web se renderiza en una **vista aislada** (`WebContentsView`) que se reengancha al activar su pestaña, conservando estado, scroll y formularios.
-- **Lanzador de módulos** con tarjetas para abrir la primera pestaña.
+- **Cajón OSINT** con todas las páginas (inicio, 9 plataformas y las que agregás vos) para abrirlas en una pestaña.
 - **Menú nativo** reorganizado en 4 secciones para liberar espacio: METATRON, Ver, Herramientas y Ayuda.
 - Estética **dark tipo terminal Kali Linux** (fondo casi negro, monoespaciada, acentos azul/verde/rojo/cian).
 - Muestra una pantalla de carga animada mientras las webs se conectan.
-- Reenvía los enlaces externos (que no sean de las webs permitidas) al navegador del sistema.
+- **Todo se abre dentro de METATRON**: los enlaces que piden ventana nueva se abren como pestaña interna; el navegador del sistema queda fuera.
 - Se instala como programa normal de Windows (con acceso directo en escritorio e inicio).
 
 ---
@@ -44,7 +44,7 @@ Características principales:
 
 ![Pantalla de inicio de METATRON](Imagenes/demostracion/inicio.png)
 
-Vista principal (lanzador de módulos) con las 9 plataformas, el teleprompter de última hora, el reloj, el estado de conexión, los accesos **Anotador** y **Captura**, y el interruptor **Encriptar la Intra-Net**, todo bajo la barra de pestañas y la barra de direcciones estilo terminal Kali.
+Vista principal con el **cajón OSINT** desplegado (la página de inicio, las 9 plataformas y las webs que agregaste), el teleprompter de última hora, el reloj, el estado de conexión, los accesos **Anotador** y **Captura**, y el interruptor **Encriptar la Intra-Net**, todo bajo la barra de pestañas y la barra de direcciones estilo terminal Kali.
 
 ### Navegador de pestañas
 
@@ -76,7 +76,10 @@ Splash con el logo de Estalingrado Corp y el texto *"Conectando a la Intra-net�
 ## Características
 
 - **Navegador con pestañas integrado**: barra de pestañas (nombre de la página + favicon + botón `×`), barra de direcciones con indicador de estado (`OSINT` / `SECURE` / `WEB` / `HIST` / `LOCAL`), y navegación real (atrás, adelante, recarga, recarga sin caché, zoom, DevTools).
-- **Cajón OSINT**: todas las páginas viven en un cajón desplegable (botón **OSINT** en la barra o Ctrl+Shift+O) con la **página de inicio `https://estalingradocorp.com.ar/`**, las 9 plataformas y **las webs que agregás vos**. Cada entrada muestra ícono, nombre, host y estado online/offline; con un clic se abre en una pestaña.
+- **Cajón OSINT**: todas las páginas viven en un cajón desplegable (botón **OSINT** en la barra o Ctrl+Shift+O) con la **página de inicio `https://estalingradocorp.com.ar/`**, las 9 plataformas y **las webs que agregás vos**. Cada entrada muestra ícono, nombre, host y estado online/offline; con un clic se abre en una pestaña. **Ctrl+clic** (o clic medio) la abre en segundo plano, sin sacarte de la pestaña actual.
+- **Favicon real por pestaña**: cada pestaña muestra el favicon del sitio que estás visitando (como en un navegador), con el ícono del cajón como respaldo.
+- **Sesión recuperada**: las pestañas que quedaron abiertas se guardan solas (cada 15 s y al cerrar) y se reabren la próxima vez que iniciás METATRON, siempre con la página de inicio incluida. Si cerrás todas, la app arranca de nuevo con la home sola.
+- **Reabrir pestaña cerrada** (Ctrl+Shift+T o menú **METATRON**): recupera hasta las últimas 10 pestañas cerradas, incluida la del anotador.
 - **Agregar webs**: el formulario **AGREGAR WEB** del cajón permite cargar cualquier URL con un nombre; se guardan en `%APPDATA%\METATRON\paginas.json` y se pueden quitar con la `×` de la tarjeta.
 - **Arranque con la home**: METATRON abre siempre con `https://estalingradocorp.com.ar/` cargada en una pestaña y el cajón OSINT desplegado al costado.
 - **Vista dedicada por página** (`WebContentsView`): cada sitio se renderiza en su propia vista aislada, con mejor rendimiento y sin recargar el lanzador. La ventana principal (1280×800, mínimo 800×600) arranca en **pantalla completa**.
@@ -89,7 +92,7 @@ Splash con el logo de Estalingrado Corp y el texto *"Conectando a la Intra-net�
 - **Anotador** como **pestaña de herramienta** (Ctrl+N o menú **Herramientas**): varias notas, autoguardado local, **buscador** (Ctrl+F), **notas fijadas**, contador de palabras/caracteres, **exportación individual** (`.txt`), **exportación de todas las notas** (Ctrl+Shift+E), **importación de copias de seguridad**, **restauración de la última copia**, **apertura de la carpeta de datos**. Al cerrar la pestaña se ejecuta un guardado sincrónico (`window.__anotadorFlush()`) para no perder lo último tipeado.
 - **Capturas de pantalla** (menú **Ver** o botón **Captura**, Ctrl+Shift+S): captura la ventana completa de METATRON (incluida la vista activa), la guarda en `Imágenes\METATRON Capturas` y la copia al portapapeles.
 - **Menú nativo** reorganizado en 4 secciones, sin las 9 plataformas (ahora viven como pestañas) para liberar espacio:
-  - **METATRON**: Página de inicio (Ctrl+H), Nueva pestaña (Ctrl+T), Cajón OSINT (Ctrl+Shift+O), Cerrar pestaña (Ctrl+W), Pestaña siguiente/anterior (Ctrl+Tab / Ctrl+Shift+Tab), Salir.
+  - **METATRON**: Página de inicio (Ctrl+H), Nueva pestaña (Ctrl+T), Reabrir pestaña cerrada (Ctrl+Shift+T), Cajón OSINT (Ctrl+Shift+O), Cerrar pestaña (Ctrl+W), Pestaña siguiente/anterior (Ctrl+Tab / Ctrl+Shift+Tab), Salir.
   - **Ver**: Recargar (Ctrl+R), Recargar sin caché (Ctrl+Shift+R), Atrás/Adelante, Zoom, DevTools (F12), Pantalla completa (F11), carpeta de capturas.
   - **Herramientas**: Anotador (Ctrl+N), Captura (Ctrl+Shift+S), carpeta de notas, Restaurar copia de notas, Encriptar la Intra-Net, Vaciar caché.
   - **Ayuda**: "Sobre el programa" (F1), accesos a las plataformas y a la página de inicio.
@@ -120,10 +123,12 @@ Todas las páginas viven dentro de **una sola ventana**, como un navegador propi
 | --- | --- |
 | Ctrl+T | Nueva pestaña (abre la página de inicio) |
 | Ctrl+W | Cerrar pestaña activa |
+| Ctrl+Shift+T | Reabrir la última pestaña cerrada |
 | Ctrl+Tab / Ctrl+Shift+Tab | Pestaña siguiente / anterior |
 | Ctrl+H | Página de inicio (`estalingradocorp.com.ar`) |
 | Ctrl+Shift+O | Abrir / cerrar el cajón OSINT |
 | Ctrl+L | Foco en la barra de direcciones |
+| Ctrl+clic (o clic medio) en una tarjeta del cajón | Abrir la página en una pestaña en segundo plano |
 | Ctrl+R / Ctrl+Shift+R | Recargar / recargar sin caché |
 | Ctrl+1 … Ctrl+9 | Abrir la plataforma correspondiente en una pestaña |
 | Ctrl+N | Anotador (pestaña de herramienta) |
@@ -409,3 +414,11 @@ El instalador es un **programa de uso interno** que no está firmado digitalment
   - **La app abre con la home**: `https://estalingradocorp.com.ar/` queda cargada en una pestaña y el cajón OSINT desplegado al costado (el alto de la barra se recalcula por IPC y la web se acomoda debajo).
   - **Notas migradas**: `%APPDATA%\METATRON\notas\` es la nueva ubicación; las notas de `%APPDATA%\Centinela\notas\` (con su espejo en texto plano y sus copias) se migran solas y el archivo original queda respaldado en `notas\copias\migracion-centinela-*.json`.
   - El **atajo Ctrl+1 … Ctrl+9** sigue abriendo las plataformas; **Ctrl+H** y el botón de inicio abren la página de inicio; **Ctrl+Shift+O** abre y cierra el cajón.
+- **26/11/2026: arreglo del botón `+` y mejoras del navegador.**
+  - **Bug corregido**: el botón `+` y Ctrl+T sólo activaban la pestaña de la home si ya estaba abierta, así que no se podía abrir una pestaña nueva. Ahora `+` y Ctrl+T **abren siempre una pestaña nueva**; Ctrl+H y el botón de inicio siguen yendo a la home.
+  - **Ctrl+Shift+T "Reabrir pestaña cerrada"**: recupera hasta las últimas 10 pestañas cerradas (webs, plataformas y la del anotador), también desde el menú **METATRON**.
+  - **Barra de direcciones con la dirección completa** (ruta incluida), no sólo el host.
+  - **Favicon real en cada pestaña**: se toma del sitio (`page-favicon-updated`) y se muestra como en un navegador, con el ícono del cajón como respaldo.
+  - **Sesión recuperada**: las pestañas abiertas se guardan solas (cada 15 s y al cerrar) en `%APPDATA%\METATRON\sesion.json` y se reabren al iniciar, siempre con la página de inicio incluida. Si cerrás todas, la app arranca de nuevo con la home sola.
+  - **Ctrl+clic (o clic medio)** en una tarjeta del cajón: abre la página en una pestaña **en segundo plano**, sin sacarte de la actual.
+  - Al recargar la pestaña del anotador se guarda el contenido antes (flush), para no perder lo último tipeado.

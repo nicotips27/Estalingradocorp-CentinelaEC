@@ -500,6 +500,12 @@ function renderTabs() {
       img.src = tab.img;
       img.alt = '';
       fav.appendChild(img);
+    } else if (tab.fav) {
+      const img = document.createElement('img');
+      img.src = tab.fav;
+      img.alt = '';
+      img.onerror = () => { fav.innerHTML = WEB_ICON; };
+      fav.appendChild(img);
     } else {
       fav.innerHTML = WEB_ICON;
     }
@@ -557,10 +563,9 @@ function renderAddressBar() {
     urlFlag.textContent = 'LOCAL';
     urlFlag.style.color = 'var(--cyan)';
   } else {
-    let scheme = 'https://';
-    try { scheme = new URL(tab.url).protocol + '//'; } catch (e) {}
-    urlPrefix.textContent = scheme;
-    urlInput.value = hostOf(tab.url);
+    // Se muestra la dirección completa (ruta incluida), como en un navegador.
+    urlPrefix.textContent = '';
+    urlInput.value = tab.url;
     urlInput.placeholder = '';
     urlFlag.textContent = tab.kind === 'web' ? 'WEB' : (tab.canGoBack ? 'HIST' : 'SECURE');
     urlFlag.style.color = tab.kind === 'web' ? 'var(--cyan)' : 'var(--green)';
@@ -625,7 +630,13 @@ function renderDrawer() {
       card.appendChild(x);
     }
 
-    card.addEventListener('click', () => window.metatron.openPage(page.id));
+    // Clic normal abre en la pestaña; Ctrl+clic o clic medio la abre en segundo plano.
+    card.addEventListener('click', ev => {
+      window.metatron.openPage(page.id, ev.ctrlKey || ev.metaKey || ev.shiftKey);
+    });
+    card.addEventListener('auxclick', ev => {
+      if (ev.button === 1) window.metatron.openPage(page.id, true);
+    });
     osintGrid.appendChild(card);
   });
 

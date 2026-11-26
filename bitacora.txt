@@ -124,10 +124,10 @@ TECNOLOGIAS UTILIZADAS
 INSTALADOR GENERADO
 -------------------
 Ruta: dist\METATRON Setup 1.0.0.exe
-Tamano: ~75.4 MB (79.099.080 bytes)
-Fecha generacion: 26/11/2026 18:19
+Tamano: ~75.4 MB (79.100.587 bytes)
+Fecha generacion: 26/11/2026 19:45
 Comando: npm run dist
-SHA256: DB61882DB67299E3F1F0222CA7F9CA2334AA22D346F5AE3ABB68C7AAED89A2F5
+SHA256: 45F1C7BAB0EB94F3E6C9C454BCB76E9EE1B9AEA7FFDA7C62DDD80C7647AF20FB
 Assets del release v1.0.0 actualizados en GitHub (exe + blockmap + latest.yml).
 
 VERIFICACIONES
@@ -224,6 +224,51 @@ TAREA PENDIENTE
 ---------------
 SE DEBE INTEGRAR UN AGENTE IA LOCAL PARA QUE TRABAJE DENTRO DEL PROGRAMA.
 Se recomienda evaluar e integrar un agente de IA local (ej. Ollama + LLM local, LM Studio, Open WebUI, LocalAI, AnythingLLM, Jan u otra opcion) que pueda operar de forma local sin depender de APIs externas. Esta integracion queda pendiente de implementacion y configuracion.
+
+26/11/2026 - ARREGLO DEL BOTON "+" Y MEJORAS DEL NAVEGADOR
+-----------------------------------------------------------
+Reporte del usuario: "no puedo abrir una pestaña desde el boton +".
+
+Causa raiz: el boton + y Ctrl+T llamaban a openHomePage(), que si la home ya estaba
+abierta solo ACTIVABA esa pestaña en lugar de crear una nueva. Reproducido por CDP:
+4 clics en + y 1 Ctrl+T dejaban 1 sola pestaña.
+
+Arreglos:
+  - main.js: openHomePage(opts) acepta opts.newTab. El + y Ctrl+T (IPC 'tabs:new') ahora
+    abren SIEMPRE una pestaña nueva; Ctrl+H y el boton Inicio siguen activando la home
+    existente si ya esta abierta
+  - Menu nativo: "Nueva pestaña" usa openHomePage({newTab:true})
+
+Otras mejoras del navegador:
+  - Ctrl+Shift+T "Reabrir pestaña cerrada": historial de las ultimas 10 pestañas cerradas
+    (webs, plataformas y la pestaña del anotador), tambien en el menu METATRON
+  - Barra de direcciones: muestra la direccion COMPLETA (ruta incluida), no solo el host
+  - Favicon real por pestaña: evento page-favicon-updated, se manda al renderizador y se
+    muestra en la pestaña (con el icono del cajon como respaldo y onerror)
+  - Sesion recuperada: saveSession() (al cerrar la ventana y cada 15 s) guarda las
+    pestañas abiertas en %APPDATA%\METATRON\sesion.json (escritura atomica, maximo 12);
+    restoreSession() las reabre al arrancar y garantiza que la pagina de inicio este
+    incluida. Si se cerraron todas, la app arranca con la home sola
+  - Ctrl+clic (o clic medio) en una tarjeta del cajon: abre la pagina en una pestaña en
+    segundo plano, sin cambiar la pestaña activa (main + preload + home.html)
+  - navReload: antes de recargar la pestaña del anotador se ejecuta el flush
+    (window.__anotadorFlush) para no perder lo ultimo tipeado
+
+Verificaciones (desarrollo, via CDP):
+  - Arranque: 1 pestaña con estalingradocorp.com.ar
+  - + x2 -> 3 pestanas; Ctrl+T -> 4; cerrar 2 -> 2; Ctrl+Shift+T -> 3
+  - Ctrl+clic en tarjeta: la pestaña activa NO cambia y el total sube en 1
+  - Barra de direcciones: https://en.wikipedia.org/wiki/Electron (ruta completa), bandera WEB
+  - Favicons: estalingradocorp.com.ar/assets/logo.jpg, en.wikipedia.org/static/favicon/
+    wikipedia.ico, github.io/favicon.ico
+  - Sesion: 4 pestanas sembradas -> sesion.json con 4 entradas (pageId e img incluidos) ->
+    al reabrir se Restauran como kind 'page' sin duplicar la home; al cerrar TODAS, la
+    sesion se borra y la app reabre con la home sola
+  - node --check OK en main.js, preload.js y el script inline de home.html
+
+Verificaciones (build empaquetado, dist\win-unpacked\METATRON.exe, via CDP):
+  - Mismos pasos OK: arranque con 1 pestaña, + x2 -> 3, Ctrl+T -> 4, cerrar/reabrir,
+    Ctrl+clic en segundo plano, URL completa y favicons reales
 
 26/11/2026 - RENOMBRADO A METATRON + CAJON OSINT
 --------------------------------------------------

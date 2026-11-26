@@ -283,6 +283,7 @@ function tabsState() {
       siteIndex: typeof t.siteIndex === 'number' ? t.siteIndex : -1,
       pageId: t.pageId || '',
       img: t.img || '',
+      fav: t.fav || '',
       title: t.title,
       pageTitle: t.pageTitle || t.title,
       url: t.url,
@@ -329,16 +330,110 @@ function activateTab(id) {
 }
 
 // Abre la página de inicio (estalingradocorp.com.ar) en una pestaña.
-function openHomePage() {
+// opts.newTab = true → abre SIEMPRE una pestaña nueva (botón "+" y Ctrl+T);
+// sin eso, si la home ya está abierta se activa su pestaña (Ctrl+H / botón Inicio).
+function openHomePage(opts = {}) {
   if (!mainWindow || mainWindow.isDestroyed()) return null;
-  const existing = tabs.find(t => t.kind === 'page' && t.pageId === HOME_PAGE.id);
-  if (existing) {
-    activateTab(existing.id);
-    return existing;
+  if (!opts.newTab) {
+    const existing = tabs.find(t => t.kind === 'page' && t.pageId === HOME_PAGE.id);
+    if (existing) {
+      activateTab(existing.id);
+      return existing;
+    }
   }
   const tab = createWebTab(HOME_PAGE.url, { title: HOME_PAGE.name, img: HOME_PAGE.img, pageId: HOME_PAGE.id });
   activateTab(tab.id);
   return tab;
+}
+
+// ── Pestañas cerradas (Ctrl+Shift+T) ─────────────────────────────────────────
+const MAX_CLOSED_TABS = 10;
+let closedTabs = [];
+
+function snapshotTab(tab) {
+  if (tab.kind === 'tool' && tab.tool === 'notes') return { tool: 'notes' };
+  return {
+    url: tab.url || tab.baseUrl || '',
+    title: tab.title,
+    img: tab.img,
+    siteIndex: typeof tab.siteIndex === 'number' ? tab.siteIndex : -1,
+    pageId: tab.pageId || ''
+  };
+}
+
+function reopenLastClosed() {
+  const snap = closedTabs.pop();
+  if (!snap) {
+    toastToLauncher('No hay pestañas cerradas para reabrir');
+    return null;
+  }
+  if (snap.tool === 'notes') {
+    const tab = openNotesTab();
+    buildMenu();
+    return tab;
+  }
+  const tab = createWebTab(snap.url, {
+    title: snap.title, img: snap.img, siteIndex: snap.siteIndex, pageId: snap.pageId
+  });
+  activateTab(tab.id);
+  buildMenu();
+  return tab;
+}
+
+// ── Sesión: las pestañas abiertas se recuperan al volver a abrir la app ───────
+const SESSION_MAX = 12;
+
+function sessionFilePath() { return path.join(dataDir(), 'sesion.json'); }
+
+function saveSession() {
+  try {
+    if (!tabs.length) { fs.rmSync(sessionFilePath(), { force: true }); return; }
+    const list = tabs.slice(-SESSION_MAX).map(t => {
+      if (t.kind === 'tool' && t.tool === 'notes') return { tool: 'notes' };
+      if (t.kind === 'site') return { siteIndex: t.siteIndex };
+      return { url: t.url, title: t.title, pageId: t.pageId || '', img: t.img || '' };
+    });
+    fs.mkdirSync(dataDir(), { recursive: true });
+    const tmp = sessionFilePath() + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify({ tabs: list }, null, 2), 'utf8');
+    fs.renameSync(tmp, sessionFilePath());
+  } catch (e) {}
+}
+
+// Devuelve false si no había nada guardado (la app abre con la página de inicio).
+function restoreSession() {
+  let list = [];
+  try {
+    const data = JSON.parse(fs.readFileSync(sessionFilePath(), 'utf8'));
+    list = Array.isArray(data.tabs) ? data.tabs : [];
+  } catch (e) { return false; }
+
+  const restored = [];
+  for (const item of list.slice(-SESSION_MAX)) {
+    let tab = null;
+    try {
+      if (item && item.tool === 'notes') tab = createNotesTab();
+      else if (item && typeof item.siteIndex === 'number' && item.siteIndex >= 0 && item.siteIndex < SITES.length) {
+        tab = createSiteTab(item.siteIndex);
+      } else if (item && typeof item.url === 'string' && normalizeWebUrl(item.url)) {
+        tab = createWebTab(item.url, {
+          title: item.title || hostOf(item.url), pageId: item.pageId || '', img: item.img || ''
+        });
+      }
+    } catch (e) { tab = null; }
+    if (tab) restored.push(tab);
+  }
+  if (!restored.length) return false;
+
+  // La página de inicio siempre está presente al abrir la app.
+  if (!restored.some(t => t.kind === 'page' && t.pageId === HOME_PAGE.id)) {
+    restored.unshift(createWebTab(HOME_PAGE.url, {
+      title: HOME_PAGE.name, img: HOME_PAGE.img, pageId: HOME_PAGE.id
+    }));
+  }
+  activateTab(restored[restored.length - 1].id);
+  buildMenu();
+  return true;
 }
 
 // Abre / cierra el cajón OSINT (el panel vive en el renderizador).
@@ -380,7 +475,8 @@ function buildMenu() {
       label: 'METATRON',
       submenu: [
         { label: 'Página de inicio', accelerator: 'CmdOrCtrl+H', click: () => openHomePage() },
-        { label: 'Nueva pestaña', accelerator: 'CmdOrCtrl+T', click: () => openHomePage() },
+        { label: 'Nueva pestaña', accelerator: 'CmdOrCtrl+T', click: () => openHomePage({ newTab: true }) },
+        { label: 'Reabrir pestaña cerrada', accelerator: 'CmdOrCtrl+Shift+T', enabled: closedTabs.length > 0, click: () => reopenLastClosed() },
         { label: 'Cajón OSINT', accelerator: 'CmdOrCtrl+Shift+O', click: () => toggleDrawer() },
         { label: 'Cerrar pestaña', accelerator: 'CmdOrCtrl+W', enabled: !!tab, click: () => closeActiveTab() },
         { type: 'separator' },
@@ -841,18 +937,20 @@ function removeCustomPage(id) {
 }
 
 // Abre una página del cajón OSINT en una pestaña.
-function openPageById(id) {
+// background = true (Ctrl+clic o clic medio) → la abre sin salir de la pestaña actual.
+function openPageById(id, background) {
   const page = allPages().find(p => p.id === String(id || ''));
   if (!page) return null;
-  if (typeof page.siteIndex === 'number') return openSiteTab(page.siteIndex);
+  if (typeof page.siteIndex === 'number') return openSiteTab(page.siteIndex, background);
 
   const existing = tabs.find(t => t.kind === 'page' && t.pageId === page.id);
-  if (existing) {
+  if (existing && !background) {
     activateTab(existing.id);
     return existing;
   }
   const tab = createWebTab(page.url, { title: page.name, img: page.img, pageId: page.id });
-  activateTab(tab.id);
+  if (!background) activateTab(tab.id);
+  else pushTabsState();
   return tab;
 }
 
@@ -1115,6 +1213,7 @@ function createWebTab(url, opts = {}) {
     pageTitle: fallbackTitle,
     url: startUrl,
     baseUrl: startUrl,
+    fav: '',
     view,
     loading: true
   };
@@ -1145,8 +1244,16 @@ function createWebTab(url, opts = {}) {
     tab.pageTitle = title || fallbackTitle;
     pushTabsState();
   });
+  // Favicon real del sitio: se muestra en la pestaña (como en un navegador).
+  wc.on('page-favicon-updated', (event, favicons) => {
+    const first = (favicons || []).find(f => /^https?:\/\//i.test(f));
+    if (!first) return;
+    tab.fav = first;
+    pushTabsState();
+  });
   wc.on('did-navigate', (event, navUrl) => {
     tab.url = navUrl;
+    tab.fav = '';
     // Si la pestaña sale de su plataforma o de su página del cajón, pasa a ser web libre.
     if (tab.kind === 'site' && findSiteIndex(navUrl) < 0) {
       tab.kind = 'web';
@@ -1202,19 +1309,20 @@ function openWebTab(url) {
   return tab;
 }
 
-function openSiteTab(siteIndex) {
+function openSiteTab(siteIndex, background) {
   if (!mainWindow || mainWindow.isDestroyed()) return null;
   const i = Number(siteIndex);
   if (!Number.isInteger(i) || i < 0 || i >= SITES.length) return null;
 
   const existing = tabs.find(t => t.kind === 'site' && t.siteIndex === i);
-  if (existing) {
+  if (existing && !background) {
     activateTab(existing.id);
     return existing;
   }
 
   const tab = createSiteTab(i);
-  activateTab(tab.id);
+  if (!background) activateTab(tab.id);
+  else pushTabsState();
   return tab;
 }
 
@@ -1266,6 +1374,10 @@ async function closeTab(id) {
   const tab = tabs[idx];
   const wasActive = tab.id === activeTabId;
 
+  // Se guarda para poder reabrirla con Ctrl+Shift+T.
+  closedTabs.push(snapshotTab(tab));
+  if (closedTabs.length > MAX_CLOSED_TABS) closedTabs.shift();
+
   tabs.splice(idx, 1);
   if (wasActive) activeTabId = null;
 
@@ -1299,6 +1411,7 @@ function closeActiveTab() {
     return;
   }
   closeTab(activeTabId);
+  buildMenu();
 }
 
 function cycleTab(direction) {
@@ -1318,7 +1431,14 @@ function navForward() {
   if (wc) wc.goForward();
 }
 
-function navReload(bypassCache) {
+async function navReload(bypassCache) {
+  const tab = activeTab();
+  // El anotador se guarda antes de recargar para no perder lo último tipeado.
+  if (tab && tab.kind === 'tool' && tab.tool === 'notes' && tab.view && !tab.view.webContents.isDestroyed()) {
+    try {
+      await tab.view.webContents.executeJavaScript('window.__anotadorFlush && window.__anotadorFlush()');
+    } catch (e) {}
+  }
   const wc = activeWebContents();
   if (!wc) return;
   if (bypassCache) wc.reloadIgnoringCache();
@@ -1404,6 +1524,9 @@ function createMain() {
   mainWindow.on('enter-full-screen', layoutViewsNow);
   mainWindow.on('leave-full-screen', layoutViewsNow);
 
+  // Al cerrar se guardan las pestañas abiertas para recuperarlas la próxima vez.
+  mainWindow.on('close', () => saveSession());
+
   const reveal = () => {
     if (splashWindow && !splashWindow.isDestroyed()) splashWindow.close();
     if (mainWindow && !mainWindow.isDestroyed()) {
@@ -1441,8 +1564,10 @@ app.whenReady().then(async () => {
   createMain();
   startNewsFeed();
 
-  // El navegador arranca con la página de inicio (estalingradocorp.com.ar).
-  openHomePage();
+  // El navegador arranca con la página de inicio (estalingradocorp.com.ar),
+  // o recuperando las pestañas que quedaron abiertas la última vez.
+  if (!restoreSession()) openHomePage();
+  setInterval(saveSession, 15000);
 
   ipcMain.on('navigate', (event, index) => {
     const i = Number(index);
@@ -1459,7 +1584,9 @@ app.whenReady().then(async () => {
 
   ipcMain.on('tabs:close', (event, id) => closeTab(String(id || '')));
 
-  ipcMain.on('tabs:new', () => openHomePage());
+  ipcMain.on('tabs:new', () => openHomePage({ newTab: true }));
+
+  ipcMain.on('tabs:reopen', () => reopenLastClosed());
 
   ipcMain.on('tabs:cycle', (event, dir) => cycleTab(Number(dir) >= 0 ? 1 : -1));
 
@@ -1483,7 +1610,7 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('pages:remove', (event, id) => removeCustomPage(String(id || '')));
 
-  ipcMain.on('pages:open', (event, id) => openPageById(String(id || '')));
+  ipcMain.on('pages:open', (event, id, background) => openPageById(String(id || ''), !!background));
 
   ipcMain.on('nav:go', (event, url) => navigateToUrl(url));
 

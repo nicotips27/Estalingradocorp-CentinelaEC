@@ -26,6 +26,7 @@ contextBridge.exposeInMainWorld('metatron', {
   activateTab: (id) => ipcRenderer.send('tabs:activate', id),
   closeTab: (id) => ipcRenderer.send('tabs:close', id),
   newTab: () => ipcRenderer.send('tabs:new'),
+  reopenTab: () => ipcRenderer.send('tabs:reopen'),
   cycleTab: (dir) => ipcRenderer.send('tabs:cycle', dir),
 
   // Barra de direcciones
@@ -42,7 +43,8 @@ contextBridge.exposeInMainWorld('metatron', {
   onPages: (cb) => ipcRenderer.on('pages-update', (_e, pages) => cb(pages)),
   addPage: (name, url, desc) => ipcRenderer.invoke('pages:add', { name, url, desc }),
   removePage: (id) => ipcRenderer.invoke('pages:remove', id),
-  openPage: (id) => ipcRenderer.send('pages:open', id),
+  // background = true (Ctrl+clic o clic medio) abre la página sin cambiar de pestaña.
+  openPage: (id, background) => ipcRenderer.send('pages:open', id, !!background),
   onDrawerToggle: (cb) => ipcRenderer.on('drawer:toggle', (_e, force) => cb(force)),
 
   // Herramientas
