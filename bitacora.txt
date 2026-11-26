@@ -296,6 +296,10 @@ Verificaciones (build empaquetado, dist\win-unpacked\METATRON.exe, via CDP):
   - Al cerrar la pestana del anotador la nota nueva quedo persistida
   - Instalador regenerado con npm run dist: METATRON Setup 1.0.0.exe (79.099.080 bytes,
     26/11/2026 18:19, SHA256 DB61882DB67299E3F1F0222CA7F9CA2334AA22D346F5AE3ABB68C7AAED89A2F5)
+  - Release v1.0.0 actualizado: titulo "METATRON v1.0.0", assets METATRON.Setup.1.0.0.exe
+    (+ blockmap y latest.yml) con digest verificado contra el archivo local; los assets viejos
+    Centinela.BETA.Setup.1.0.0.exe y su blockmap fueron eliminados
+  - Commit 588fd44 y push a main
 
 25/11/2026 - REDISENO TIPO KALI LINUX + NAVEGADOR DE PESTANAS
 --------------------------------------------------------------
