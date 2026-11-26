@@ -275,6 +275,23 @@ Verificaciones (build empaquetado, dist\win-unpacked\METATRON.exe, via CDP):
   - Mismos pasos OK: arranque con 1 pestaña, + x2 -> 3, Ctrl+T -> 4, cerrar/reabrir,
     Ctrl+clic en segundo plano, URL completa y favicons reales
 
+26/11/2026 - CAJON OSINT ARRANCA CERRADO
+----------------------------------------
+Pedido del usuario: "que el menu OSINT venga cerrado".
+
+Cambios (home.html, 2 lineas):
+  - <div class="drawer open" id="drawer"> -> <div class="drawer" id="drawer">
+  - let drawerOpen = true -> false
+
+Verificado con la app corriendo (CDP):
+  - Arranque: cajon CERRADO, chrome 79px, la home cargada en su pestana
+  - Boton OSINT: abre (209px); X del cajon: cierra (79px)
+  - Ctrl+Shift+O: abre y cierra
+  - Con una web abierta el cajon sigue cerrado y la vista usa todo el alto (79px)
+  - Desde el estado "sin pestañas abiertas" el boton ABRIR CAJON OSINT funciona
+  - Instalador regenerado con npm run dist: METATRON Setup 1.0.0.exe (79.100.510 bytes,
+    26/11/2026 20:47, SHA256 6CE9BEA09153BF57C84FEFBCF39150E856458DBAA3DC78A51FB91BD9244D146E)
+
 26/11/2026 - CAJON OSINT COMPACTADO
 -----------------------------------
 Pedido del usuario: "haz que los botones del menu osint sean mas pequeños asi no estorban

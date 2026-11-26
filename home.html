@@ -394,8 +394,9 @@
     </button>
   </div>
 
-  <!-- Cajón OSINT: todas las páginas (integradas + las que agrega el usuario) -->
-  <div class="drawer open" id="drawer">
+  <!-- Cajón OSINT: todas las páginas (integradas + las que agrega el usuario).
+         Arranca CERRADO: se abre con el botón OSINT o Ctrl+Shift+O. -->
+  <div class="drawer" id="drawer">
     <div class="drawer-head">
       <span class="tag">OSINT</span>
       <span class="sub" id="osint-sub">cargando páginas…</span>
@@ -465,7 +466,7 @@ const toastEl      = document.getElementById('toast');
 let tabs = [];
 let activeTab = null;
 let pages = [];
-let drawerOpen = true;
+let drawerOpen = false;   // el cajón arranca cerrado (botón OSINT / Ctrl+Shift+O)
 const statusDots = new Map();
 const probed = new Set();
 

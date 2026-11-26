@@ -44,7 +44,7 @@ Características principales:
 
 ![Pantalla de inicio de METATRON](Imagenes/demostracion/inicio.png)
 
-Vista principal con el **cajón OSINT** desplegado (la página de inicio, las 9 plataformas y las webs que agregaste), el teleprompter de última hora, el reloj, el estado de conexión, los accesos **Anotador** y **Captura**, y el interruptor **Encriptar la Intra-Net**, todo bajo la barra de pestañas y la barra de direcciones estilo terminal Kali.
+Vista con el **cajón OSINT** abierto (la página de inicio, las 9 plataformas y las webs que agregaste): arranca cerrado y se abre con el botón **OSINT** o Ctrl+Shift+O. También se ven el teleprompter de última hora, el reloj, el estado de conexión, los accesos **Anotador** y **Captura**, y el interruptor **Encriptar la Intra-Net**, todo bajo la barra de pestañas y la barra de direcciones estilo terminal Kali.
 
 ### Navegador de pestañas
 
@@ -81,7 +81,7 @@ Splash con el logo de Estalingrado Corp y el texto *"Conectando a la Intra-net�
 - **Sesión recuperada**: las pestañas que quedaron abiertas se guardan solas (cada 15 s y al cerrar) y se reabren la próxima vez que iniciás METATRON, siempre con la página de inicio incluida. Si cerrás todas, la app arranca de nuevo con la home sola.
 - **Reabrir pestaña cerrada** (Ctrl+Shift+T o menú **METATRON**): recupera hasta las últimas 10 pestañas cerradas, incluida la del anotador.
 - **Agregar webs**: el formulario **AGREGAR WEB** del cajón permite cargar cualquier URL con un nombre; se guardan en `%APPDATA%\METATRON\paginas.json` y se pueden quitar con la `×` de la tarjeta.
-- **Arranque con la home**: METATRON abre siempre con `https://estalingradocorp.com.ar/` cargada en una pestaña y el cajón OSINT desplegado al costado.
+- **Arranque con la home**: METATRON abre siempre con `https://estalingradocorp.com.ar/` cargada en una pestaña y **el cajón OSINT cerrado**, para que veas la web grande; lo abrís cuando quieras con el botón **OSINT** o Ctrl+Shift+O.
 - **Vista dedicada por página** (`WebContentsView`): cada sitio se renderiza en su propia vista aislada, con mejor rendimiento y sin recargar el lanzador. La ventana principal (1280×800, mínimo 800×600) arranca en **pantalla completa**.
 - **User-Agent de Chrome 124** (`session.defaultSession.setUserAgent`): evita que Cloudflare y otros sitios anti-bot bloqueen a Electron.
 - **Estética dark tipo Kali Linux** en toda la interfaz: fondo `#07090c`, paneles `#0d1014`/`#141920`, líneas `#232a33`, acentos azul `#367bf0`/`#5b9bff`, verde `#35d07f`, rojo `#ff4d4f`, amarillo `#e3b341` y cian `#3fc9d4`; tipografía monoespaciada (`JetBrains Mono`/`Fira Code`/`Cascadia Mono`/`Consolas`), bordes rectos y prompt `root@metatron:`.
@@ -411,7 +411,7 @@ El instalador es un **programa de uso interno** que no está firmado digitalment
   - La app pasa de **Centinela BETA** a **METATRON**: nombre del producto, título de ventana, menú, splash, instalador (`METATRON Setup 1.0.0.exe`), accesos directos, carpeta de capturas (`Imágenes\METATRON Capturas`) y puente del renderizador (`window.metatron`).
   - El lanzador de módulos se reemplaza por el **cajón OSINT**: un panel desplegable (botón **OSINT** / Ctrl+Shift+O) que contiene **todas** las páginas — la página de inicio `https://estalingradocorp.com.ar/`, las 9 plataformas y **las webs que agrega el usuario**.
   - **Agregar webs**: el formulario **AGREGAR WEB** guarda cualquier URL en `%APPDATA%\METATRON\paginas.json`; la `×` de la tarjeta la quita del cajón.
-  - **La app abre con la home**: `https://estalingradocorp.com.ar/` queda cargada en una pestaña y el cajón OSINT desplegado al costado (el alto de la barra se recalcula por IPC y la web se acomoda debajo).
+  - **La app abre con la home**: `https://estalingradocorp.com.ar/` queda cargada en una pestaña y el cajón OSINT **cerrado**, para que la web arranque a pantalla grande (se abre con el botón **OSINT** o Ctrl+Shift+O; el alto de la barra se recalcula por IPC y la web se acomoda debajo).
   - **Notas migradas**: `%APPDATA%\METATRON\notas\` es la nueva ubicación; las notas de `%APPDATA%\Centinela\notas\` (con su espejo en texto plano y sus copias) se migran solas y el archivo original queda respaldado en `notas\copias\migracion-centinela-*.json`.
   - El **atajo Ctrl+1 … Ctrl+9** sigue abriendo las plataformas; **Ctrl+H** y el botón de inicio abren la página de inicio; **Ctrl+Shift+O** abre y cierra el cajón.
 - **26/11/2026: arreglo del botón `+` y mejoras del navegador.**
@@ -422,3 +422,6 @@ El instalador es un **programa de uso interno** que no está firmado digitalment
   - **Sesión recuperada**: las pestañas abiertas se guardan solas (cada 15 s y al cerrar) en `%APPDATA%\METATRON\sesion.json` y se reabren al iniciar, siempre con la página de inicio incluida. Si cerrás todas, la app arranca de nuevo con la home sola.
   - **Ctrl+clic (o clic medio)** en una tarjeta del cajón: abre la página en una pestaña **en segundo plano**, sin sacarte de la actual.
   - Al recargar la pestaña del anotador se guarda el contenido antes (flush), para no perder lo último tipeado.
+- **26/11/2026: el cajón OSINT arranca cerrado.**
+  - La app abre con la home cargada y **el cajón cerrado**, para que la web arranque a pantalla completa; lo abrís con el botón **OSINT** o Ctrl+Shift+O.
+  - Las tarjetas del cajón son **compactas, de una sola línea** (ícono + nombre + host + estado): con el cajón abierto la barra mide 209 px (antes 259) y la web gana 50 px de alto.
