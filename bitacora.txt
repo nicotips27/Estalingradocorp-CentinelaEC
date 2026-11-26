@@ -265,6 +265,11 @@ Verificaciones (desarrollo, via CDP):
     al reabrir se Restauran como kind 'page' sin duplicar la home; al cerrar TODAS, la
     sesion se borra y la app reabre con la home sola
   - node --check OK en main.js, preload.js y el script inline de home.html
+  - Instalador regenerado con npm run dist: METATRON Setup 1.0.0.exe (79.100.587 bytes,
+    26/11/2026 19:45, SHA256 45F1C7BAB0EB94F3E6C9C454BCB76E9EE1B9AEA7FFDA7C62DDD80C7647AF20FB)
+  - Release v1.0.0: assets subidos con --clobber (digest verificado contra el archivo local)
+    y notas del release actualizadas con el arreglo del + y las mejoras
+  - Commit fd716b0 y push a main
 
 Verificaciones (build empaquetado, dist\win-unpacked\METATRON.exe, via CDP):
   - Mismos pasos OK: arranque con 1 pestaña, + x2 -> 3, Ctrl+T -> 4, cerrar/reabrir,
