@@ -13,11 +13,11 @@ try {
   else document.addEventListener('DOMContentLoaded', attach, { once: true });
 } catch (e) { }
 
-contextBridge.exposeInMainWorld('centinela', {
+contextBridge.exposeInMainWorld('metatron', {
   // Navegación
   selectSite: (index) => ipcRenderer.send('navigate', index),
   getCurrent: () => ipcRenderer.invoke('get-current'),
-  // Abre cualquier URL en una pestaña INTERNA del navegador de Centinela.
+  // Abre cualquier URL en una pestaña INTERNA del navegador de METATRON.
   openTab: (url) => ipcRenderer.send('tabs:open-url', url),
 
   // Pestañas
@@ -36,6 +36,14 @@ contextBridge.exposeInMainWorld('centinela', {
   reload: () => ipcRenderer.send('nav:reload'),
   reloadBypass: () => ipcRenderer.send('nav:reload-bypass'),
   home: () => ipcRenderer.send('nav:home'),
+
+  // Cajón OSINT
+  getPages: () => ipcRenderer.invoke('pages:get'),
+  onPages: (cb) => ipcRenderer.on('pages-update', (_e, pages) => cb(pages)),
+  addPage: (name, url, desc) => ipcRenderer.invoke('pages:add', { name, url, desc }),
+  removePage: (id) => ipcRenderer.invoke('pages:remove', id),
+  openPage: (id) => ipcRenderer.send('pages:open', id),
+  onDrawerToggle: (cb) => ipcRenderer.on('drawer:toggle', (_e, force) => cb(force)),
 
   // Herramientas
   openNotes: () => ipcRenderer.send('open-notes'),

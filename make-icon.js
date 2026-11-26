@@ -28,7 +28,7 @@ function main() {
     );
   }
 
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'centinela-icon-'));
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'metatron-icon-'));
   const src = path.resolve(SRC);
   const pngOut = path.resolve(PNG_OUT);
 

@@ -1,40 +1,48 @@
-BITACORA DE PROYECTO - CENTINELA BETA
+BITACORA DE PROYECTO - METATRON (antes Centinela BETA)
 
-FECHA DE ANALISIS: 26/10/2026
+FECHA DE ANALISIS: 26/11/2026
 REPOSITORIO: https://github.com/nicotips27/Estalingradocorp-CentinelaEC
 UBICACION FINAL: C:\Users\nicot\OneDrive\Desktop\Estalingrado corp\proyectos\centinela\Estalingradocorp-CentinelaEC
 
 RESUMEN DEL PROYECTO
 ---------------------
-Nombre: Centinela BETA
+Nombre: METATRON
 Version: 1.0.0
 Tipo: Aplicacion de escritorio para Windows (Electron)
-Autor: Centinela BETA
+Autor: METATRON
 Licencia: MIT
 
 DESCRIPCION
 -----------
-Centinela BETA es un wrapper de escritorio construido con Electron que permite acceder rapidamente a nueve plataformas de monitoreo e inteligencia desde un navegador propio con pestanas, sin necesidad de un navegador web. Incluye pantalla de carga, lanzador de modulos, barra de pestanas y direcciones, bloqueo de anuncios y menu nativo de Windows.
+METATRON es un wrapper de escritorio construido con Electron que permite acceder rapidamente a
+nueve plataformas de monitoreo e inteligencia desde un navegador propio con pestanas, sin
+necesidad de un navegador web. Incluye pantalla de carga, cajon OSINT con todas las paginas
+(integradas y las que agrega el usuario), pagina de inicio estalingradocorp.com.ar, barra de
+pestanas y direcciones, bloqueo de anuncios y menu nativo de Windows.
 
 CARACTERISTICAS PRINCIPALES
 ---------------------------
 - Interfaz con estetica dark tipo terminal Kali Linux (fondo #07090c, monoespaciada, acentos azul/verde/rojo/cian)
+- CAJON OSINT: panel desplegable (boton OSINT / Ctrl+Shift+O) con la pagina de inicio
+  https://estalingradocorp.com.ar/, las 9 plataformas y las webs que agrega el usuario
+- El usuario puede AGREGAR cualquier web al cajon (formulario AGREGAR WEB) y quitarla con la X
+  de la tarjeta. Se guardan en %APPDATA%\METATRON\paginas.json (escritura atomica)
+- La app arranca con la pagina de inicio cargada en una pestana y el cajon OSINT desplegado
 - Navegador propio con pestanas: barra de pestanas + barra de direcciones, historial, recarga y zoom
 - Las 9 plataformas NO estan en el menu nativo: se abren como pestanas dentro de una sola ventana
 - Cada pestana conserva su WebContentsView (se desengancha al cambiar y se reengancha al activar),
   preservando scroll, formularios y sesion
-- El alto real de la barra del navegador se informa por IPC (chrome:height) y las vistas se
-  posicionan debajo (y = chromeHeight)
-- Lanzador de modulos (home.html) con tarjetas, reloj, estado de conexion e interruptor Encriptar
+- El alto real de la barra del navegador (incluido el cajon) se informa por IPC (chrome:height) y
+  las vistas se posicionan debajo (y = chromeHeight)
 - Pantalla de carga/splash (splash.html)
-- Menu nativo reorganizado en 4 secciones: Centinela, Ver, Herramientas, Ayuda
-- Atajos: Ctrl+1 - Ctrl+9 (globales via before-input-event), Ctrl+H (Inicio), Ctrl+T (nueva pestana),
-  Ctrl+W (cerrar pestana), Ctrl+Tab/Ctrl+Shift+Tab (cambiar pestana), Ctrl+L (barra de direcciones),
-  Ctrl+N (Anotador), Ctrl+R, Ctrl+Shift+R, Ctrl+Shift+S, F11, F12, F1
+- Menu nativo reorganizado en 4 secciones: METATRON, Ver, Herramientas, Ayuda
+- Atajos: Ctrl+1 - Ctrl+9 (globales via before-input-event), Ctrl+H (pagina de inicio), Ctrl+T (nueva
+  pestana), Ctrl+W (cerrar pestana), Ctrl+Tab/Ctrl+Shift+Tab (cambiar pestana), Ctrl+Shift+O (cajon
+  OSINT), Ctrl+L (barra de direcciones), Ctrl+N (Anotador), Ctrl+R, Ctrl+Shift+R, Ctrl+Shift+S, F11, F12, F1
 - La barra de direcciones acepta CUALQUIER URL y navega DENTRO de la app (en la pestana activa o
   en una nueva). Los links target=_blank / window.open abren pestanas internas. Las noticias del
   teleprompter, los links del menu Ayuda y "Visitar Estalingrado Corp" tambien. NO se usa mas
-  shell.openExternal: el navegador del sistema queda fuera de Centinela
+  shell.openExternal: el navegador del sistema queda fuera de METATRON
 - Las pestanas de plataforma que navegan a otro sitio pasan a ser "web libre" (icono de globo,
   bandera WEB)
 - Bloqueo de anuncios integrado (@cliqz/adblocker-electron)
@@ -45,11 +53,14 @@ CARACTERISTICAS PRINCIPALES
   a .txt (individual y masiva), importacion de copias y restauracion
 - Al cerrar la pestana del anotador se ejecuta window.__anotadorFlush() (guardado sincronico)
   para no perder lo ultimo tipeado
-- Las notas se guardan FUERA de la carpeta de datos de Electron, en %APPDATA%\Centinela\notas
+- Las notas se guardan FUERA de la carpeta de datos de Electron, en %APPDATA%\METATRON\notas
   (anotador.json + espejo notas.txt + copias\), para que NO se pierdan al reinstalar
-  (NSIS borra %APPDATA%\centinela-beta por defecto: deleteAppDataOnUninstall = false)
+  (NSIS borra %APPDATA%\metatron por defecto: deleteAppDataOnUninstall = false)
+- Migracion automatica desde %APPDATA%\Centinela\notas (version Centinela BETA): se copian el
+  JSON, el espejo en texto plano y las copias de seguridad; el original queda respaldado en
+  notas\copias\migracion-centinela-*.json
 - Capturas de pantalla (menu Ver o boton Captura, Ctrl+Shift+S): guarda la ventana completa
-  en Imagenes\Centinela Capturas y la copia al portapapeles
+  en Imagenes\METATRON Capturas y la copia al portapapeles
 - Indicador Encriptar la Intra-Net con LED y switch funcional
 - Monitoreo de conectividad por plataforma via peticiones HEAD
 - Pantalla completa por defecto al iniciar
@@ -112,11 +123,11 @@ TECNOLOGIAS UTILIZADAS
 
 INSTALADOR GENERADO
 -------------------
-Ruta: dist\Centinela BETA Setup 1.0.0.exe
-Tamano: ~75.4 MB (79.097.501 bytes)
-Fecha generacion: 25/11/2026 17:35
+Ruta: dist\METATRON Setup 1.0.0.exe
+Tamano: ~75.4 MB (79.099.080 bytes)
+Fecha generacion: 26/11/2026 18:19
 Comando: npm run dist
-SHA256: 15834AB2EFE9FD6B8424918996DC85D284A8E52F758A7BE0153A3329043B640A
+SHA256: DB61882DB67299E3F1F0222CA7F9CA2334AA22D346F5AE3ABB68C7AAED89A2F5
 Assets del release v1.0.0 actualizados en GitHub (exe + blockmap + latest.yml).
 
 VERIFICACIONES
@@ -213,6 +224,78 @@ TAREA PENDIENTE
 ---------------
 SE DEBE INTEGRAR UN AGENTE IA LOCAL PARA QUE TRABAJE DENTRO DEL PROGRAMA.
 Se recomienda evaluar e integrar un agente de IA local (ej. Ollama + LLM local, LM Studio, Open WebUI, LocalAI, AnythingLLM, Jan u otra opcion) que pueda operar de forma local sin depender de APIs externas. Esta integracion queda pendiente de implementacion y configuracion.
+
+26/11/2026 - RENOMBRADO A METATRON + CAJON OSINT
+--------------------------------------------------
+Pedido: renombrar Centinela por METATRON en todo el proyecto, que todas las paginas esten en un
+cajon llamado OSINT y que la pagina de inicio sea https://estalingradocorp.com.ar/.
+
+Renombrado (todo el proyecto):
+  - main.js: appUserModelId com.metatron.beta, titulos de ventana "METATRON - ...", menu "METATRON",
+    dialogo "Sobre el programa", prefijo metatron://, capturas en "METATRON Capturas",
+    exportacion "METATRON-anotador-*.txt", cabecera del .txt "METATRON - ANOTADOR",
+    "Copia de METATRON" en el dialogo de importacion
+  - preload.js: el puente pasa de window.centinela a window.metatron (+ API del cajon OSINT)
+  - home.html, notes.html, splash.html, renderer.html: titulos, logo, prompt root@metatron:,
+    prefijo metatron://, textos "navegador de METATRON"
+  - package.json / package-lock.json: name "metatron", productName "METATRON",
+    appId "com.metatron.beta", shortcutName "METATRON" (el instalador sale como
+    "METATRON Setup 1.0.0.exe")
+  - make-icon.js: temp "metatron-icon-"
+  - README.md y bitacora.txt actualizados; AGENTS.md con la nueva ruta del instalador
+
+Cajon OSINT (main.js + home.html):
+  - HOME_PAGE = { id:'inicio', name:'Estalingrado Corp', url:'https://estalingradocorp.com.ar/' }
+  - Modulo de paginas: allPages() = home + 9 plataformas + las que agrega el usuario
+  - Persistencia en %APPDATA%\METATRON\paginas.json (escritura atomica .tmp + rename)
+  - IPC: pages:get, pages:add, pages:remove, pages:open; evento pages-update al renderizador
+  - addCustomPage valida la URL (normalizeWebUrl), evita duplicados y limita a 60 paginas
+  - removeCustomPage solo borra las del usuario; las integradas no se tocan
+  - Nuevo tipo de pestana kind:'page' (con pageId e img). Si la pagina navega a otro origen,
+    la pestana pasa a kind:'web' (icono de globo, bandera WEB)
+  - El lanzador de modulos (grilla) se elimina: ahora es el cajon, un panel dentro de #chrome
+    (se despliega hacia abajo y empuja la web). Boton OSINT en la barra + Ctrl+Shift+O
+  - Formulario AGREGAR WEB (nombre + URL + AGREGAR) y boton X por pagina para quitarla
+  - El alto del chrome se recalcula con ResizeObserver: con el cajon abierto la barra mide 259px
+    y la vista nativa queda en y=259 (alto 483px)
+
+Inicio:
+  - La app abre con openHomePage() -> pestana con https://estalingradocorp.com.ar/
+  - Ctrl+H, el boton de inicio y el menu abren la pagina de inicio
+  - Ctrl+T / boton "+" abren la pagina de inicio; Ctrl+Shift+O abre y cierra el cajon
+
+Migracion de las notas a %APPDATA%\METATRON\notas:
+  - notesDataDir() ahora apunta a %APPDATA%\METATRON\notas
+  - migrateCentinelaNotes(): si no hay anotador.json en la ruta nueva, copia desde
+    %APPDATA%\Centinela\notas (JSON + notas.txt + copias\) y deja el original respaldado en
+    notas\copias\migracion-centinela-*.json
+  - Se conserva la migracion antigua desde %APPDATA%\centinela-beta\anotador.json
+
+Verificaciones (desarrollo, via CDP):
+  - Arranque: pestana con estalingradocorp.com.ar, cajon abierto (10 tarjetas = home + 9)
+  - AGREGAR WEB: "Wikipedia" agregada (11 paginas, "1 agregadas por vos"), persistida en
+    %APPDATA%\METATRON\paginas.json
+  - Clic en la tarjeta: abre la web en una pestana (la barra muestra es.wikipedia.org)
+  - Quitar con la X: vuelve a 10 paginas
+  - Cerrar el cajon: el chrome baja de 259px a 79px; al reabrirlo vuelve a 259px
+  - Layout real: vista nativa 1360x483 con el cajon abierto (742 - 259)
+  - Captura real de pantalla: barra METATRON + cajon OSINT + pagina de inicio cargada debajo
+  - node --check OK en main.js, preload.js, notes-preload.js y en los scripts inline de
+    home.html y notes.html
+  - Nota: durante las pruebas se detectaron clics reales del mouse (trusted=true) en la pantalla
+    (no un bug de la app)
+
+Verificaciones (build empaquetado, dist\win-unpacked\METATRON.exe, via CDP):
+  - Arranque: pestana con https://estalingradocorp.com.ar/ y cajon OSINT abierto (259px)
+  - AGREGAR WEB: la pagina queda persistida en %APPDATA%\METATRON\paginas.json
+  - MIGRACION DE NOTAS: se preparados dos notas en %APPDATA%\Centinela\notas (JSON + notas.txt +
+    copias\) y al abrir METATRON el anotador las muestra (2 notas). En disco quedan:
+    notas\anotador.json con las notas migradas + la nueva escrita, notas\copias\
+    migracion-centinela-2026-11-26_18-23-16.json (respaldo del original), la copia vieja copiada
+    y el espejo notas.txt con la cabecera "METATRON - ANOTADOR"
+  - Al cerrar la pestana del anotador la nota nueva quedo persistida
+  - Instalador regenerado con npm run dist: METATRON Setup 1.0.0.exe (79.099.080 bytes,
+    26/11/2026 18:19, SHA256 DB61882DB67299E3F1F0222CA7F9CA2334AA22D346F5AE3ABB68C7AAED89A2F5)
 
 25/11/2026 - REDISENO TIPO KALI LINUX + NAVEGADOR DE PESTANAS
 --------------------------------------------------------------

@@ -8,4 +8,4 @@ Cada vez que se modifique código de la app (main.js, preload.js, renderer.html,
 npm run dist
 ```
 
-Esto produce el instalador actualizado en `dist\Centinela BETA Setup 1.0.0.exe`. No consideres una tarea terminada hasta que el instalador esté regenerado con los últimos cambios.
+Esto produce el instalador actualizado en `dist\METATRON Setup 1.0.0.exe`. No consideres una tarea terminada hasta que el instalador esté regenerado con los últimos cambios.

@@ -1,9 +1,9 @@
 {
-  "name": "centinela-beta",
+  "name": "metatron",
   "version": "1.0.0",
-  "description": "Centinela BETA - App de escritorio",
+  "description": "METATRON - App de escritorio",
   "main": "main.js",
-  "author": "Centinela BETA",
+  "author": "METATRON",
   "license": "MIT",
   "allowScripts": {
     "electron": "postinstall"
@@ -13,8 +13,8 @@
     "dist": "electron-builder --win"
   },
   "build": {
-    "appId": "com.centinela.beta",
-    "productName": "Centinela BETA",
+    "appId": "com.metatron.beta",
+    "productName": "METATRON",
     "directories": {
       "output": "dist"
     },
@@ -58,7 +58,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Centinela BETA",
+      "shortcutName": "METATRON",
       "installerIcon": "icon.ico",
       "uninstallerIcon": "icon.ico",
       "deleteAppDataOnUninstall": false

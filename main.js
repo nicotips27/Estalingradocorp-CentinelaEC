@@ -5,23 +5,33 @@ const fs = require('fs');
 const crypto = require('crypto');
 const { initAdblock } = require('./adblock');
 
-// Identidad de Windows: hace que las notificaciones (capturas) salgan como Centinela BETA.
-app.setAppUserModelId('com.centinela.beta');
+// Identidad de Windows: hace que las notificaciones (capturas) salgan como METATRON.
+app.setAppUserModelId('com.metatron.beta');
 
 // User-Agent de Chrome real: evita que Cloudflare/sitios bloqueen a Electron.
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 
 const SITES = [
-  { name: 'EC Terminal Data',  url: 'https://nicotips27.github.io/Estalingrado-corp-Terminal-data/', shortcut: 'CmdOrCtrl+1' },
-  { name: 'EC NEWS',            url: 'https://nicotips27.github.io/ECnews/',                      shortcut: 'CmdOrCtrl+2' },
-  { name: 'EC Send Pro',       url: 'https://estalingradocorp.github.io/ECsendpro/',            shortcut: 'CmdOrCtrl+3' },
-  { name: 'Osiris AI',         url: 'https://osirisai.live/',                        shortcut: 'CmdOrCtrl+4' },
-  { name: 'OpenGrid Works',    url: 'https://opengridworks.com/power-plants', shortcut: 'CmdOrCtrl+5' },
-  { name: 'Provenance',        url: 'https://provenance-online.com/app?lat=5.6961&lon=-52.32892&z=1.74&layers=&base=satellite', shortcut: 'CmdOrCtrl+6' },
-  { name: 'Radio Garden',      url: 'https://radio.garden/',                                   shortcut: 'CmdOrCtrl+7' },
-  { name: 'Famelack',          url: 'https://famelack.com/',                                    shortcut: 'CmdOrCtrl+8' },
-  { name: 'Drive & Listen',    url: 'https://driveandlisten.app/',                               shortcut: 'CmdOrCtrl+9' }
+  { name: 'EC Terminal Data',  url: 'https://nicotips27.github.io/Estalingrado-corp-Terminal-data/', shortcut: 'CmdOrCtrl+1', img: 'logo.jpg',               desc: 'Mercados, divisas, materias primas.' },
+  { name: 'EC NEWS',            url: 'https://nicotips27.github.io/ECnews/',                      shortcut: 'CmdOrCtrl+2', img: 'img-ecnews.jpg',         desc: 'Prensa y agencias globales.' },
+  { name: 'EC Send Pro',       url: 'https://estalingradocorp.github.io/ECsendpro/',            shortcut: 'CmdOrCtrl+3', img: 'img-ecsendpro.png',      desc: 'Intercambio y envíos Estalingrado Corp.' },
+  { name: 'Osiris AI',         url: 'https://osirisai.live/',                        shortcut: 'CmdOrCtrl+4', img: 'img-osiris.png',         desc: 'Inteligencia y análisis en tiempo real.' },
+  { name: 'OpenGrid Works',    url: 'https://opengridworks.com/power-plants', shortcut: 'CmdOrCtrl+5', img: 'img-opengrid.webp',      desc: 'Centrales eléctricas en tiempo real.' },
+  { name: 'Provenance',        url: 'https://provenance-online.com/app?lat=5.6961&lon=-52.32892&z=1.74&layers=&base=satellite', shortcut: 'CmdOrCtrl+6', img: 'img-warwatch.png', desc: 'Mapa satelital de procedencia.' },
+  { name: 'Radio Garden',      url: 'https://radio.garden/',                                   shortcut: 'CmdOrCtrl+7', img: 'img-radiogarden.png',    desc: 'Estaciones de radio de todo el mundo.' },
+  { name: 'Famelack',          url: 'https://famelack.com/',                                    shortcut: 'CmdOrCtrl+8', img: 'img-famelack.png',       desc: 'Contenido y comunidad Famelack.' },
+  { name: 'Drive & Listen',    url: 'https://driveandlisten.app/',                               shortcut: 'CmdOrCtrl+9', img: 'img-driveandlisten.png', desc: 'Recorridos virtuales con radio local.' }
 ];
+
+// Página de inicio del navegador: se abre por defecto al arrancar METATRON.
+const HOME_PAGE = {
+  id: 'inicio',
+  name: 'Estalingrado Corp',
+  url: 'https://estalingradocorp.com.ar/',
+  img: 'logo.jpg',
+  desc: 'Portal de Estalingrado Corp.',
+  builtin: true
+};
 
 const SPLASH_MIN_MS = 1800;
 let mainWindow = null;
@@ -52,7 +62,7 @@ function findSiteIndex(url) {
 // Devuelve null si no es una URL http/https válida.
 function normalizeWebUrl(raw) {
   let input = String(raw || '').trim();
-  if (!input || /^centinela:/i.test(input)) return null;
+  if (!input || /^metatron:/i.test(input)) return null;
   if (!/^[a-z][a-z0-9+.-]*:/i.test(input)) input = 'https://' + input;
   try {
     const u = new URL(input);
@@ -271,6 +281,8 @@ function tabsState() {
       kind: t.kind,
       tool: t.tool || '',
       siteIndex: typeof t.siteIndex === 'number' ? t.siteIndex : -1,
+      pageId: t.pageId || '',
+      img: t.img || '',
       title: t.title,
       pageTitle: t.pageTitle || t.title,
       url: t.url,
@@ -291,7 +303,7 @@ function pushTabsState() {
 function updateWindowTitle() {
   if (!mainWindow || mainWindow.isDestroyed()) return;
   const tab = activeTab();
-  mainWindow.setTitle(tab ? `Centinela BETA — ${tab.title}` : 'Centinela BETA — Inicio');
+  mainWindow.setTitle(tab ? `METATRON — ${tab.title}` : 'METATRON — Inicio');
 }
 
 function layoutViews() {
@@ -316,15 +328,23 @@ function activateTab(id) {
   buildMenu();
 }
 
-// Vuelve al lanzador de módulos (pestaña nueva) sin cerrar las demás pestañas.
-function showLauncher() {
+// Abre la página de inicio (estalingradocorp.com.ar) en una pestaña.
+function openHomePage() {
+  if (!mainWindow || mainWindow.isDestroyed()) return null;
+  const existing = tabs.find(t => t.kind === 'page' && t.pageId === HOME_PAGE.id);
+  if (existing) {
+    activateTab(existing.id);
+    return existing;
+  }
+  const tab = createWebTab(HOME_PAGE.url, { title: HOME_PAGE.name, img: HOME_PAGE.img, pageId: HOME_PAGE.id });
+  activateTab(tab.id);
+  return tab;
+}
+
+// Abre / cierra el cajón OSINT (el panel vive en el renderizador).
+function toggleDrawer(force) {
   if (!mainWindow || mainWindow.isDestroyed()) return;
-  detachViews();
-  activeTabId = null;
-  updateWindowTitle();
-  pushTabsState();
-  mainWindow.webContents.focus();
-  mainWindow.focus();
+  mainWindow.webContents.send('drawer:toggle', force === true);
 }
 
 function toastToLauncher(message) {
@@ -334,8 +354,8 @@ function toastToLauncher(message) {
 // Ctrl+1 … Ctrl+9 abren el módulo correspondiente en una pestaña,
 // sin importar qué vista tenga el foco.
 function attachModuleShortcuts(wc) {
-  if (!wc || wc.__centinelaShortcuts) return;
-  wc.__centinelaShortcuts = true;
+  if (!wc || wc.__metatronShortcuts) return;
+  wc.__metatronShortcuts = true;
   try {
     wc.on('before-input-event', (event, input) => {
       if (!input || input.type !== 'keyDown') return;
@@ -357,10 +377,11 @@ function buildMenu() {
 
   const menu = Menu.buildFromTemplate([
     {
-      label: 'Centinela',
+      label: 'METATRON',
       submenu: [
-        { label: 'Inicio · módulos', accelerator: 'CmdOrCtrl+H', click: () => showLauncher() },
-        { label: 'Nueva pestaña', accelerator: 'CmdOrCtrl+T', click: () => showLauncher() },
+        { label: 'Página de inicio', accelerator: 'CmdOrCtrl+H', click: () => openHomePage() },
+        { label: 'Nueva pestaña', accelerator: 'CmdOrCtrl+T', click: () => openHomePage() },
+        { label: 'Cajón OSINT', accelerator: 'CmdOrCtrl+Shift+O', click: () => toggleDrawer() },
         { label: 'Cerrar pestaña', accelerator: 'CmdOrCtrl+W', enabled: !!tab, click: () => closeActiveTab() },
         { type: 'separator' },
         {
@@ -447,8 +468,10 @@ function buildMenu() {
       submenu: [
         { label: 'Sobre el programa', accelerator: 'F1', click: showAbout },
         { type: 'separator' },
-        { label: 'Abrir plataforma en una pestaña', enabled: false },
-        ...SITES.map((s, i) => ({ label: s.name, click: () => openSiteTab(i) }))
+        { label: 'Abrir página en una pestaña', enabled: false },
+        ...SITES.map((s, i) => ({ label: s.name, click: () => openSiteTab(i) })),
+        { type: 'separator' },
+        { label: 'Estalingrado Corp (inicio)', click: () => openHomePage() }
       ]
     }
   ]);
@@ -476,8 +499,8 @@ function restoreNotesBackup() {
 function showAbout() {
   dialog.showMessageBox(mainWindow, {
     type: 'info',
-    title: 'Centinela BETA',
-    message: 'Centinela BETA v1.0.0 · Servicio Estalingrado Corp',
+    title: 'METATRON',
+    message: 'METATRON v1.0.0 · Servicio Estalingrado Corp',
     detail: 'Centro de inteligencia global. Monitoreá el mundo, analizá información y seguí acontecimientos en tiempo real desde una única plataforma.\n\nAtajos: Ctrl+1–9 para módulos | Ctrl+H para inicio | Ctrl+T nueva pestaña | Ctrl+W cerrar pestaña | Ctrl+Tab cambiar de pestaña | Ctrl+N anotador | Ctrl+Shift+S captura\n\nWeb: estalingradocorp.qzz.io',
     buttons: ['Cerrar', 'Visitar Estalingrado Corp'],
     cancelId: 0,
@@ -497,15 +520,22 @@ const NOTES_BACKUP_INTERVAL_MS = 60 * 1000;
 let lastBackupAt = 0;
 
 // Las notas se guardan FUERA de la carpeta de datos de Electron
-// (%APPDATA%\centinela-beta) para que reinstalar o desinstalar la app
+// (%APPDATA%\metatron) para que reinstalar o desinstalar la app
 // NO borre el contenido del anotador.
+function dataDir() {
+  return path.join(app.getPath('appData'), 'METATRON');
+}
 function notesDataDir() {
-  return path.join(app.getPath('appData'), 'Centinela', 'notas');
+  return path.join(dataDir(), 'notas');
 }
 function notesFilePath() { return path.join(notesDataDir(), 'anotador.json'); }
 function notesTxtPath() { return path.join(notesDataDir(), 'notas.txt'); }
 function notesBackupDir() { return path.join(notesDataDir(), 'copias'); }
 function legacyNotesFilePath() { return path.join(app.getPath('userData'), 'anotador.json'); }
+// Ubicación anterior (versión Centinela BETA): se migra sola a %APPDATA%\METATRON\notas
+function legacyCentinelaNotesDir() {
+  return path.join(app.getPath('appData'), 'Centinela', 'notas');
+}
 
 function ensureNotesDir() {
   try {
@@ -555,7 +585,7 @@ function noteDisplayTitle(note) {
 
 function notesToTxt(state) {
   const lines = [];
-  lines.push('CENTINELA BETA - ANOTADOR');
+  lines.push('METATRON - ANOTADOR');
   lines.push('Exportado: ' + new Date().toLocaleString('es-ES'));
   lines.push('Notas: ' + state.notes.length);
   lines.push('');
@@ -626,17 +656,21 @@ function readNotesState() {
   try { raw = fs.readFileSync(notesFilePath(), 'utf8'); } catch (e) {}
 
   if (!raw) {
+    // Migracion desde Centinela BETA (%APPDATA%\Centinela\notas) → %APPDATA%\METATRON\notas
+    const migrated = migrateCentinelaNotes();
+    if (migrated) return migrated;
+
     // Migracion desde la ubicacion anterior (%APPDATA%\centinela-beta\anotador.json)
     try {
       const legacyRaw = fs.readFileSync(legacyNotesFilePath(), 'utf8');
-      const migrated = sanitizeNotesState(JSON.parse(legacyRaw));
-      if (migrated.notes.length) {
-        writeNotesState(migrated);
+      const state = sanitizeNotesState(JSON.parse(legacyRaw));
+      if (state.notes.length) {
+        writeNotesState(state);
         try {
           fs.copyFileSync(legacyNotesFilePath(),
             path.join(notesBackupDir(), 'migracion-' + stampForFile(new Date()) + '.json'));
         } catch (e) {}
-        return migrated;
+        return state;
       }
     } catch (e) {}
     return { notes: [], activeId: null };
@@ -650,6 +684,40 @@ function readNotesState() {
     if (restored) return restored;
   }
   return { notes: [], activeId: null };
+}
+
+// Copia la carpeta de notas de Centinela BETA a la de METATRON (una sola vez).
+function migrateCentinelaNotes() {
+  const legacyDir = legacyCentinelaNotesDir();
+  const legacyFile = path.join(legacyDir, 'anotador.json');
+  let legacyRaw = null;
+  try { legacyRaw = fs.readFileSync(legacyFile, 'utf8'); } catch (e) {}
+  if (!legacyRaw) return null;
+
+  try {
+    const state = sanitizeNotesState(JSON.parse(legacyRaw));
+    if (!state.notes.length) return null;
+
+    ensureNotesDir();
+    // Copia el espejo en texto plano y las copias de seguridad si existen.
+    try { fs.copyFileSync(path.join(legacyDir, 'notas.txt'), notesTxtPath()); } catch (e) {}
+    try {
+      const legacyBackups = path.join(legacyDir, 'copias');
+      if (fs.existsSync(legacyBackups)) {
+        for (const f of fs.readdirSync(legacyBackups)) {
+          if (!f.endsWith('.json')) continue;
+          fs.copyFileSync(path.join(legacyBackups, f), path.join(notesBackupDir(), f));
+        }
+      }
+    } catch (e) {}
+
+    writeNotesState(state);
+    try {
+      fs.copyFileSync(legacyFile,
+        path.join(notesBackupDir(), 'migracion-centinela-' + stampForFile(new Date()) + '.json'));
+    } catch (e) {}
+    return state;
+  } catch (e) { return null; }
 }
 
 function writeNotesState(input) {
@@ -679,6 +747,115 @@ function mergeNotesStates(current, incoming) {
   return { state: base, added };
 }
 
+// ── Cajón OSINT: páginas integradas + las que agrega el usuario ──────────────
+const PAGES_MAX = 60;
+
+function pagesFilePath() { return path.join(dataDir(), 'paginas.json'); }
+
+function readCustomPages() {
+  let list = [];
+  try {
+    const raw = fs.readFileSync(pagesFilePath(), 'utf8');
+    const data = JSON.parse(raw);
+    list = Array.isArray(data) ? data : (Array.isArray(data.pages) ? data.pages : []);
+  } catch (e) { return []; }
+
+  const out = [];
+  for (const p of list) {
+    if (!p || typeof p.url !== 'string') continue;
+    const url = normalizeWebUrl(p.url);
+    if (!url) continue;
+    out.push({
+      id: String(p.id || ('u-' + crypto.randomUUID().slice(0, 8))).slice(0, 64),
+      name: String(p.name || hostOf(url)).slice(0, 80),
+      url,
+      desc: String(p.desc || '').slice(0, 120),
+      img: '',
+      builtin: false
+    });
+    if (out.length >= PAGES_MAX) break;
+  }
+  return out;
+}
+
+function writeCustomPages(list) {
+  try {
+    fs.mkdirSync(dataDir(), { recursive: true });
+    const tmp = pagesFilePath() + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify({ pages: list }, null, 2), 'utf8');
+    fs.renameSync(tmp, pagesFilePath());
+    return true;
+  } catch (e) { return false; }
+}
+
+// Lista completa del cajón: home + 9 plataformas + las que agregó el usuario.
+function allPages() {
+  const builtin = SITES.map((s, i) => ({
+    id: 'site-' + i,
+    name: s.name,
+    url: s.url,
+    desc: s.desc,
+    img: s.img,
+    siteIndex: i,
+    builtin: true
+  }));
+  return [HOME_PAGE, ...builtin, ...readCustomPages()];
+}
+
+function pushPagesState() {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('pages-update', allPages());
+  }
+}
+
+function addCustomPage(name, url, desc) {
+  const target = normalizeWebUrl(url);
+  if (!target) return { ok: false, error: 'URL inválida' };
+  const list = readCustomPages();
+  if (list.length >= PAGES_MAX) return { ok: false, error: 'Límite de páginas alcanzado (' + PAGES_MAX + ')' };
+
+  const dup = list.find(p => p.url === target || getSiteOrigin(p.url) === getSiteOrigin(target));
+  if (dup) return { ok: false, error: 'Esa página ya está en el cajón' };
+
+  const page = {
+    id: 'u-' + crypto.randomUUID().slice(0, 8),
+    name: String(name || '').trim().slice(0, 80) || hostOf(target),
+    url: target,
+    desc: String(desc || '').trim().slice(0, 120),
+    img: '',
+    builtin: false
+  };
+  list.push(page);
+  if (!writeCustomPages(list)) return { ok: false, error: 'No se pudo guardar la página' };
+  pushPagesState();
+  return { ok: true, page };
+}
+
+function removeCustomPage(id) {
+  const list = readCustomPages();
+  const next = list.filter(p => p.id !== id);
+  if (next.length === list.length) return { ok: false, error: 'No se encontró la página' };
+  if (!writeCustomPages(next)) return { ok: false, error: 'No se pudo guardar el cajón' };
+  pushPagesState();
+  return { ok: true };
+}
+
+// Abre una página del cajón OSINT en una pestaña.
+function openPageById(id) {
+  const page = allPages().find(p => p.id === String(id || ''));
+  if (!page) return null;
+  if (typeof page.siteIndex === 'number') return openSiteTab(page.siteIndex);
+
+  const existing = tabs.find(t => t.kind === 'page' && t.pageId === page.id);
+  if (existing) {
+    activateTab(existing.id);
+    return existing;
+  }
+  const tab = createWebTab(page.url, { title: page.name, img: page.img, pageId: page.id });
+  activateTab(tab.id);
+  return tab;
+}
+
 // ── Anotador (pestaña de herramienta) ───────────────────────────────────────
 function openNotes() {
   openNotesTab();
@@ -691,13 +868,13 @@ function closeNotes() {
 
 // ── Capturas de pantalla ────────────────────────────────────────────────────
 function capturesDir() {
-  return path.join(app.getPath('pictures'), 'Centinela Capturas');
+  return path.join(app.getPath('pictures'), 'METATRON Capturas');
 }
 
 function screenshotName() {
   const d = new Date();
   const p2 = n => String(n).padStart(2, '0');
-  return 'Centinela ' + d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()) +
+  return 'METATRON ' + d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()) +
     ' ' + p2(d.getHours()) + '-' + p2(d.getMinutes()) + '-' + p2(d.getSeconds()) + '.png';
 }
 
@@ -804,7 +981,7 @@ function registerNotesIpc() {
     const owner = mainWindow && !mainWindow.isDestroyed() ? mainWindow : null;
     const options = {
       title: 'Exportar todas las notas',
-      defaultPath: path.join(app.getPath('documents'), 'Centinela-anotador-' + stampForFile(new Date()) + '.txt'),
+      defaultPath: path.join(app.getPath('documents'), 'METATRON-anotador-' + stampForFile(new Date()) + '.txt'),
       filters: [{ name: 'Texto', extensions: ['txt'] }]
     };
 
@@ -832,7 +1009,7 @@ function registerNotesIpc() {
       title: 'Importar copia de seguridad',
       defaultPath: notesDataDir(),
       filters: [
-        { name: 'Copia de Centinela', extensions: ['json'] },
+        { name: 'Copia de METATRON', extensions: ['json'] },
         { name: 'Todos los archivos', extensions: ['*'] }
       ]
     };
@@ -908,10 +1085,12 @@ function registerNotesIpc() {
 }
 
 // Crea una vista de navegación y la registra como pestaña.
-// siteIndex >= 0 → es una de las 9 plataformas; siteIndex = -1 → es una web
-// libre (cualquier URL http/https) abierta dentro del mismo navegador.
+// siteIndex >= 0 → es una de las 9 plataformas; pageId → es una página del cajón
+// OSINT (home o agregada por el usuario); sin ninguno → es una web libre
+// (cualquier URL http/https) abierta dentro del mismo navegador.
 function createWebTab(url, opts = {}) {
   const siteIndex = typeof opts.siteIndex === 'number' ? opts.siteIndex : -1;
+  const pageId = opts.pageId || '';
   const startUrl = normalizeWebUrl(url) || url;
   const fallbackTitle = opts.title || hostOf(startUrl) || 'Web';
   const view = new WebContentsView({
@@ -927,12 +1106,15 @@ function createWebTab(url, opts = {}) {
   attachModuleShortcuts(wc);
   const tab = {
     id: 'tab-' + (++tabSeq),
-    kind: siteIndex >= 0 ? 'site' : 'web',
+    kind: siteIndex >= 0 ? 'site' : (pageId ? 'page' : 'web'),
     tool: '',
     siteIndex,
+    pageId,
+    img: opts.img || '',
     title: fallbackTitle,
     pageTitle: fallbackTitle,
     url: startUrl,
+    baseUrl: startUrl,
     view,
     loading: true
   };
@@ -965,10 +1147,15 @@ function createWebTab(url, opts = {}) {
   });
   wc.on('did-navigate', (event, navUrl) => {
     tab.url = navUrl;
-    // Si la pestaña sale de su plataforma, pasa a ser una web libre.
+    // Si la pestaña sale de su plataforma o de su página del cajón, pasa a ser web libre.
     if (tab.kind === 'site' && findSiteIndex(navUrl) < 0) {
       tab.kind = 'web';
       tab.siteIndex = -1;
+      tab.img = '';
+    } else if (tab.kind === 'page' && getSiteOrigin(navUrl) !== getSiteOrigin(tab.baseUrl)) {
+      tab.kind = 'web';
+      tab.pageId = '';
+      tab.img = '';
     }
     if (tab.kind === 'web') tab.title = hostOf(navUrl) || tab.title;
     pushTabsState();
@@ -979,6 +1166,11 @@ function createWebTab(url, opts = {}) {
     if (tab.kind === 'site' && findSiteIndex(navUrl) < 0) {
       tab.kind = 'web';
       tab.siteIndex = -1;
+      tab.img = '';
+    } else if (tab.kind === 'page' && getSiteOrigin(navUrl) !== getSiteOrigin(tab.baseUrl)) {
+      tab.kind = 'web';
+      tab.pageId = '';
+      tab.img = '';
     }
     if (tab.kind === 'web') tab.title = hostOf(navUrl) || tab.title;
     pushTabsState();
@@ -997,7 +1189,7 @@ function createWebTab(url, opts = {}) {
 
 function createSiteTab(siteIndex) {
   const site = SITES[siteIndex];
-  return createWebTab(site.url, { siteIndex, title: site.name });
+  return createWebTab(site.url, { siteIndex, title: site.name, img: site.img });
 }
 
 // Abre cualquier URL en una pestaña interna del navegador.
@@ -1045,8 +1237,10 @@ function createNotesTab() {
     kind: 'tool',
     tool: 'notes',
     siteIndex: -1,
+    pageId: '',
+    img: '',
     title: 'Anotador',
-    url: 'centinela://anotador',
+    url: 'metatron://notas',
     view: notesView,
     loading: false
   };
@@ -1101,7 +1295,7 @@ async function closeTab(id) {
 
 function closeActiveTab() {
   if (!activeTabId) {
-    showLauncher();
+    openHomePage();
     return;
   }
   closeTab(activeTabId);
@@ -1146,7 +1340,7 @@ function navigateToUrl(raw) {
   const input = String(raw || '').trim();
   if (!input) return;
 
-  if (/^centinela:/i.test(input)) { showLauncher(); return; }
+  if (/^metatron:/i.test(input)) { openHomePage(); return; }
 
   const target = normalizeWebUrl(input);
   if (!target) {
@@ -1193,7 +1387,7 @@ function createMain() {
     autoHideMenuBar: false,
     backgroundColor: '#0d0d0d',
     icon: path.join(__dirname, 'icon.png'),
-    title: 'Centinela BETA — Inicio',
+    title: 'METATRON — Inicio',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -1247,9 +1441,12 @@ app.whenReady().then(async () => {
   createMain();
   startNewsFeed();
 
+  // El navegador arranca con la página de inicio (estalingradocorp.com.ar).
+  openHomePage();
+
   ipcMain.on('navigate', (event, index) => {
     const i = Number(index);
-    if (i === -1) showLauncher();
+    if (i === -1) openHomePage();
     else openSiteTab(i);
   });
 
@@ -1262,7 +1459,7 @@ app.whenReady().then(async () => {
 
   ipcMain.on('tabs:close', (event, id) => closeTab(String(id || '')));
 
-  ipcMain.on('tabs:new', () => showLauncher());
+  ipcMain.on('tabs:new', () => openHomePage());
 
   ipcMain.on('tabs:cycle', (event, dir) => cycleTab(Number(dir) >= 0 ? 1 : -1));
 
@@ -1274,7 +1471,19 @@ app.whenReady().then(async () => {
 
   ipcMain.on('nav:reload-bypass', () => navReload(true));
 
-  ipcMain.on('nav:home', () => showLauncher());
+  ipcMain.on('nav:home', () => openHomePage());
+
+  // ── Cajón OSINT: páginas integradas + las que agrega el usuario ────────────
+  ipcMain.handle('pages:get', () => allPages());
+
+  ipcMain.handle('pages:add', (event, payload) => {
+    const data = payload && typeof payload === 'object' ? payload : {};
+    return addCustomPage(data.name, data.url, data.desc);
+  });
+
+  ipcMain.handle('pages:remove', (event, id) => removeCustomPage(String(id || '')));
+
+  ipcMain.on('pages:open', (event, id) => openPageById(String(id || '')));
 
   ipcMain.on('nav:go', (event, url) => navigateToUrl(url));
 

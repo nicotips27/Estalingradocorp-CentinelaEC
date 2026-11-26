@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Centinela BETA — Inicio</title>
+<title>METATRON — Inicio</title>
 <style>
   /* ── Kali Linux: terminal oscuro, monoespaciada, bordes rectos ───────────── */
   :root {
@@ -75,7 +75,7 @@
   .ident .txt { display:flex; flex-direction:column; line-height:1.15; }
   .ident .txt b { font-size:11px; letter-spacing:.16em; color:var(--text); }
   .ident .txt span { font-size:9.5px; color:var(--green); letter-spacing:.04em; }
-  .ident .txt span::before { content:"root@centinela:"; color:var(--text-3); }
+  .ident .txt span::before { content:"root@metatron:"; color:var(--text-3); }
   .ident .txt span::after { content:"#"; color:var(--blue-2); }
 
   .tabs {
@@ -191,7 +191,75 @@
   .tool-btn:hover { border-color:var(--blue); color:var(--text); background:var(--bg-4); }
   .tool-btn svg { width:12px; height:12px; color:var(--blue-2); }
 
-  /* ── Lanzador de módulos ─────────────────────────────────────────────────── */
+  /* ── Cajón OSINT ─────────────────────────────────────────────────────────── */
+  .drawer {
+    display:none;
+    border-top:1px solid var(--line);
+    background:linear-gradient(180deg,#0b0f14,#090c10);
+    padding:9px 12px 11px 12px;
+  }
+  .drawer.open { display:block; }
+  .drawer-head { display:flex; align-items:baseline; gap:10px; margin-bottom:8px; }
+  .drawer-head .tag { color:var(--cyan); font-size:11px; letter-spacing:.24em; }
+  .drawer-head .sub { color:var(--text-3); font-size:10px; }
+  .drawer-close {
+    width:20px; height:20px; flex:none; display:grid; place-items:center;
+    background:var(--bg-2); border:1px solid var(--line); color:var(--text-3);
+    cursor:pointer; font-size:11px; line-height:1; transition: var(--transition);
+  }
+  .drawer-close:hover { border-color:var(--red); color:var(--red); }
+
+  .drawer-grid {
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(178px,1fr)); gap:6px;
+    max-height:148px; overflow-y:auto; padding-right:2px;
+  }
+  .drawer-grid::-webkit-scrollbar { width:8px; }
+  .drawer-grid::-webkit-scrollbar-track { background:var(--bg); }
+  .drawer-grid::-webkit-scrollbar-thumb { background:var(--line-2); border:2px solid var(--bg); }
+  .pcard {
+    display:flex; align-items:center; gap:8px; padding:6px 8px; cursor:pointer;
+    background:var(--bg-2); border:1px solid var(--line);
+    transition: border-color var(--transition), background var(--transition);
+  }
+  .pcard:hover { border-color:var(--blue); background:var(--bg-3); }
+  .pcard .ptile {
+    width:26px; height:26px; flex:none; display:grid; place-items:center;
+    background:var(--bg); border:1px solid var(--line-2); overflow:hidden; color:var(--cyan);
+  }
+  .pcard .ptile img { width:100%; height:100%; object-fit:cover; display:block; }
+  .pcard .ptile svg { width:13px; height:13px; }
+  .pcard .pinfo { min-width:0; flex:1; display:flex; flex-direction:column; gap:2px; }
+  .pcard .pname { font-size:11px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .pcard .phost { font-size:9.5px; color:var(--text-3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .pcard .px {
+    flex:none; width:16px; height:16px; display:grid; place-items:center;
+    color:var(--text-3); opacity:0; font-size:12px; transition: var(--transition);
+  }
+  .pcard:hover .px { opacity:1; }
+  .pcard .px:hover { color:var(--red); }
+
+  .drawer-add {
+    display:flex; align-items:center; gap:8px; margin-top:9px; padding-top:9px;
+    border-top:1px solid var(--line);
+  }
+  .add-label { font-size:9px; letter-spacing:.2em; color:var(--text-3); flex:none; }
+  .add-input {
+    height:26px; padding:0 8px; background:var(--bg); border:1px solid var(--line);
+    color:var(--text); font-size:11px; outline:none; min-width:0;
+  }
+  .add-input:focus { border-color:var(--blue); box-shadow:0 0 0 1px rgba(54,123,240,.2); }
+  .add-input.name { width:150px; flex:none; }
+  .add-input.url { flex:1; }
+  .add-btn {
+    height:26px; padding:0 13px; flex:none; cursor:pointer;
+    background:var(--bg-2); border:1px solid var(--blue); color:var(--blue-2);
+    font-size:10px; letter-spacing:.12em; transition: var(--transition);
+  }
+  .add-btn:hover { background:var(--blue-dim); color:#8fbaff; }
+
+  .tool-btn.active { border-color:var(--cyan); color:var(--cyan); background:rgba(63,201,212,.1); }
+
+  /* ── Estado vacío ────────────────────────────────────────────────────────── */
   main {
     flex:1; min-height:0; overflow-y:auto; position:relative; z-index:5;
     padding:22px 26px 26px 26px;
@@ -208,44 +276,10 @@
   .tagline { color:var(--text-2); font-size:11.5px; line-height:1.7; margin-bottom:20px; max-width:760px; }
   .tagline b { color:var(--cyan); font-weight:600; }
 
-  .grid {
-    display:grid; grid-template-columns:repeat(auto-fill,minmax(196px,1fr)); gap:10px;
-  }
-  .card {
-    position:relative; display:flex; flex-direction:column; gap:9px;
-    padding:13px 13px 12px 15px; cursor:pointer;
-    background:linear-gradient(180deg,var(--bg-3),var(--bg-2));
-    border:1px solid var(--line);
-    transition: border-color var(--transition), transform var(--transition), background var(--transition);
-    overflow:hidden;
-  }
-  .card::before {
-    content:""; position:absolute; left:0; top:0; bottom:0; width:2px;
-    background:transparent; transition: background var(--transition);
-  }
-  .card:hover { border-color:var(--line-2); transform:translateY(-2px); }
-  .card:hover::before { background:var(--blue); }
-  .card.active { border-color:var(--blue); background:linear-gradient(180deg,rgba(54,123,240,.12),var(--bg-2)); }
-  .card.active::before { background:var(--blue); }
-  .card .top { display:flex; align-items:center; gap:8px; }
-  .card .tile {
-    width:38px; height:38px; flex:none; display:grid; place-items:center;
-    background:var(--bg); border:1px solid var(--line-2); overflow:hidden;
-  }
-  .card .tile img { width:100%; height:100%; object-fit:cover; display:block; }
-  .card .names { min-width:0; flex:1; display:flex; flex-direction:column; gap:3px; }
-  .card .name { display:block; font-size:12px; font-weight:600; letter-spacing:.03em; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .card .desc { display:block; font-size:10px; color:var(--text-3); line-height:1.45; }
-  .card .foot { display:flex; align-items:center; gap:7px; margin-top:2px; }
-  .kbd {
-    font-size:9.5px; color:var(--text-3); background:var(--bg);
-    border:1px solid var(--line); padding:1px 6px; letter-spacing:.06em;
-  }
-  .badge {
-    font-size:9px; letter-spacing:.12em; padding:2px 7px; border:1px solid var(--blue);
-    color:var(--blue-2); background:var(--blue-dim);
-  }
-  .badge.tab-open { border-color:var(--line-2); color:var(--text-3); background:transparent; }
+  .empty { display:none; }
+  body.no-tabs .empty { display:block; }
+  .empty .tag { color:var(--cyan); font-size:12px; letter-spacing:.24em; }
+
   .status-dot { width:7px; height:7px; border-radius:50%; background:var(--text-3); flex:none; }
   .status-dot.online { background:var(--green); box-shadow:0 0 6px var(--green); }
   .status-dot.offline { background:var(--red); box-shadow:0 0 6px var(--red); }
@@ -303,8 +337,8 @@
 <div id="chrome">
   <div class="tabbar">
     <div class="ident">
-      <img class="logo" src="logo.jpg" alt="Centinela BETA">
-      <div class="txt"><b>CENTINELA</b><span>~/centinela</span></div>
+      <img class="logo" src="logo.jpg" alt="METATRON">
+      <div class="txt"><b>METATRON</b><span>~/metatron</span></div>
     </div>
     <div class="tabs" id="tabs"></div>
     <button class="newtab" id="newtab" title="Nueva pestaña (Ctrl+T)">+</button>
@@ -332,15 +366,19 @@
     <button class="nav-btn" id="nav-reload" title="Recargar (Ctrl+R)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
     </button>
-    <button class="nav-btn" id="nav-home" title="Inicio · módulos (Ctrl+H)">
+    <button class="nav-btn" id="nav-home" title="Página de inicio · estalingradocorp.com.ar (Ctrl+H)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
+    </button>
+    <button class="tool-btn" id="osint-btn" title="Cajón OSINT (Ctrl+Shift+O)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h18"/></svg>
+      <span>OSINT</span>
     </button>
 
     <div class="urlbar">
-      <span class="lock" title="Todo se abre dentro del navegador de Centinela">◆</span>
-      <span class="prefix" id="url-prefix">centinela://</span>
+      <span class="lock" title="Todo se abre dentro del navegador de METATRON">◆</span>
+      <span class="prefix" id="url-prefix">metatron://</span>
       <input id="url" type="text" spellcheck="false" autocomplete="off"
-             placeholder="escribí un destino y presioná Enter" title="Cualquier sitio se abre en una pestaña de Centinela">
+             placeholder="escribí un destino y presioná Enter" title="Cualquier sitio se abre en una pestaña de METATRON">
       <span class="flag" id="url-flag">SECURE</span>
     </div>
 
@@ -353,16 +391,38 @@
       <span>CAPTURA</span>
     </button>
   </div>
+
+  <!-- Cajón OSINT: todas las páginas (integradas + las que agrega el usuario) -->
+  <div class="drawer open" id="drawer">
+    <div class="drawer-head">
+      <span class="tag">OSINT</span>
+      <span class="sub" id="osint-sub">cargando páginas…</span>
+      <span style="flex:1"></span>
+      <button class="drawer-close" id="drawer-close" title="Cerrar el cajón (Ctrl+Shift+O)">✕</button>
+    </div>
+    <div class="drawer-grid" id="osint-grid"></div>
+    <form class="drawer-add" id="add-form" autocomplete="off">
+      <span class="add-label">AGREGAR WEB</span>
+      <input class="add-input name" id="add-name" type="text" placeholder="nombre" maxlength="80" spellcheck="false">
+      <input class="add-input url" id="add-url" type="text" placeholder="https://ejemplo.com" spellcheck="false">
+      <button class="add-btn" id="add-btn" type="submit">AGREGAR</button>
+    </form>
+  </div>
 </div>
 
 <main>
-  <div class="panel-head">
-    <span class="tag">MÓDULOS</span>
-    <span class="sub" id="module-sub">9 plataformas ·Abrí cualquiera en una pestaña</span>
+  <div class="empty" id="empty">
+    <div class="panel-head">
+      <span class="tag">METATRON</span>
+      <span class="sub" id="empty-sub">sin pestañas abiertas</span>
+    </div>
+    <div class="rule"></div>
+    <p class="tagline">Centro de inteligencia global. Todas las páginas viven en el <b>cajón OSINT</b>: abrí la que quieras en una pestaña y agregá las tuyas con <b>AGREGAR WEB</b>.</p>
+    <button class="tool-btn" id="empty-osint" title="Abrir el cajón OSINT (Ctrl+Shift+O)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h18"/></svg>
+      <span>ABRIR CAJÓN OSINT</span>
+    </button>
   </div>
-  <div class="rule"></div>
-  <p class="tagline">Centro de inteligencia global. Monitoreá el mundo, analizá información y seguí acontecimientos en tiempo real desde una única plataforma. Cada módulo se abre como <b>pestaña</b>: quedate en varias a la vez y alterná con <b>Ctrl+Tab</b>.</p>
-  <div class="grid" id="grid"></div>
 </main>
 
 <div class="ticker" id="ticker">
@@ -373,7 +433,7 @@
 </div>
 
 <footer>
-  <span class="prompt">root@centinela:/opt/centinela</span>
+  <span class="prompt">root@metatron:/opt/metatron</span>
   <span id="sysline">> iniciado</span>
   <span class="spacer"></span>
   <span class="net-status"><span class="status-dot" id="footer-dot"></span> <span id="nettext">comprobando conexión…</span></span>
@@ -384,30 +444,28 @@
 <script>
 const VERSION = 'v1.0.0';
 
-const SITES = [
-  { name:'EC Terminal Data',   desc:'Mercados, divisas, materias primas.',       img:'logo.jpg',              probe:'https://nicotips27.github.io/Estalingrado-corp-Terminal-data/' },
-  { name:'EC NEWS',             desc:'Prensa y agencias globales.',              img:'img-ecnews.jpg',        probe:'https://nicotips27.github.io/ECnews/' },
-  { name:'EC Send Pro',        desc:'Intercambio y envíos Estalingrado Corp.',  img:'img-ecsendpro.png',     probe:'https://estalingradocorp.github.io/ECsendpro/' },
-  { name:'Osiris AI',           desc:'Inteligencia y análisis en tiempo real.',  img:'img-osiris.png',        probe:'https://osirisai.live/' },
-  { name:'OpenGrid Works',      desc:'Centrales eléctricas en tiempo real.',     img:'img-opengrid.webp',     probe:'https://opengridworks.com/power-plants' },
-  { name:'Provenance',          desc:'Mapa satelital de procedencia.',           img:'img-warwatch.png',      probe:'https://provenance-online.com/' },
-  { name:'Radio Garden',        desc:'Estaciones de radio de todo el mundo.',    img:'img-radiogarden.png',   probe:'https://radio.garden/' },
-  { name:'Famelack',            desc:'Contenido y comunidad Famelack.',          img:'img-famelack.png',      probe:'https://famelack.com/' },
-  { name:'Drive & Listen',      desc:'Recorridos virtuales con radio local.',    img:'img-driveandlisten.png',probe:'https://driveandlisten.app/' }
-];
-
-const grid       = document.getElementById('grid');
-const tabsEl     = document.getElementById('tabs');
-const urlInput   = document.getElementById('url');
-const urlPrefix  = document.getElementById('url-prefix');
-const urlFlag    = document.getElementById('url-flag');
-const navBack    = document.getElementById('nav-back');
-const navFwd     = document.getElementById('nav-fwd');
-const navReload  = document.getElementById('nav-reload');
-const toastEl    = document.getElementById('toast');
+const drawerEl     = document.getElementById('drawer');
+const osintGrid    = document.getElementById('osint-grid');
+const osintSub     = document.getElementById('osint-sub');
+const osintBtn     = document.getElementById('osint-btn');
+const addForm      = document.getElementById('add-form');
+const addName      = document.getElementById('add-name');
+const addUrl       = document.getElementById('add-url');
+const tabsEl       = document.getElementById('tabs');
+const urlInput     = document.getElementById('url');
+const urlPrefix    = document.getElementById('url-prefix');
+const urlFlag      = document.getElementById('url-flag');
+const navBack      = document.getElementById('nav-back');
+const navFwd       = document.getElementById('nav-fwd');
+const navReload    = document.getElementById('nav-reload');
+const toastEl      = document.getElementById('toast');
 
 let tabs = [];
 let activeTab = null;
+let pages = [];
+let drawerOpen = true;
+const statusDots = new Map();
+const probed = new Set();
 
 /* ── Pestañas ────────────────────────────────────────────────────────────── */
 const TOOL_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
@@ -437,15 +495,13 @@ function renderTabs() {
     const fav = document.createElement('span');
     fav.className = 'fav' + (tab.kind === 'tool' ? ' tool' : (tab.kind === 'web' ? ' web' : ''));
     if (tab.kind === 'tool') fav.innerHTML = TOOL_ICON;
-    else if (tab.kind === 'web') fav.innerHTML = WEB_ICON;
-    else {
-      const site = SITES[tab.siteIndex];
-      if (site) {
-        const img = document.createElement('img');
-        img.src = site.img;
-        img.alt = '';
-        fav.appendChild(img);
-      }
+    else if (tab.img) {
+      const img = document.createElement('img');
+      img.src = tab.img;
+      img.alt = '';
+      fav.appendChild(img);
+    } else {
+      fav.innerHTML = WEB_ICON;
     }
 
     const title = document.createElement('span');
@@ -471,12 +527,12 @@ function renderTabs() {
     x.title = 'Cerrar pestaña';
     x.addEventListener('click', ev => {
       ev.stopPropagation();
-      window.centinela.closeTab(tab.id);
+      window.metatron.closeTab(tab.id);
     });
     el.appendChild(x);
 
-    el.addEventListener('click', () => window.centinela.activateTab(tab.id));
-    el.addEventListener('auxclick', ev => { if (ev.button === 1) window.centinela.closeTab(tab.id); });
+    el.addEventListener('click', () => window.metatron.activateTab(tab.id));
+    el.addEventListener('auxclick', ev => { if (ev.button === 1) window.metatron.closeTab(tab.id); });
     tabsEl.appendChild(el);
   });
 }
@@ -484,10 +540,10 @@ function renderTabs() {
 function renderAddressBar() {
   const tab = tabs.find(t => t.active);
   if (!tab) {
-    urlPrefix.textContent = 'centinela://';
+    urlPrefix.textContent = 'metatron://';
     urlInput.value = '';
     urlInput.placeholder = 'escribí un destino y presioná Enter';
-    urlFlag.textContent = 'LAUNCHER';
+    urlFlag.textContent = 'OSINT';
     urlFlag.style.color = 'var(--blue-2)';
     navBack.disabled = true;
     navFwd.disabled = true;
@@ -495,8 +551,8 @@ function renderAddressBar() {
     return;
   }
   if (tab.kind === 'tool') {
-    urlPrefix.textContent = 'centinela://';
-    urlInput.value = 'anotador';
+    urlPrefix.textContent = 'metatron://';
+    urlInput.value = 'notas';
     urlInput.placeholder = '';
     urlFlag.textContent = 'LOCAL';
     urlFlag.style.color = 'var(--cyan)';
@@ -517,63 +573,77 @@ function renderAddressBar() {
 function onTabsState(list) {
   tabs = Array.isArray(list) ? list : [];
   activeTab = tabs.find(t => t.active) || null;
+  document.body.classList.toggle('no-tabs', !activeTab);
   renderTabs();
   renderAddressBar();
-  render();
 }
 
-/* ── Módulos ─────────────────────────────────────────────────────────────── */
-function render() {
-  const openSites = new Set(tabs.filter(t => t.kind === 'site').map(t => t.siteIndex));
-  const activeSite = activeTab && activeTab.kind === 'site' ? activeTab.siteIndex : -1;
+/* ── Cajón OSINT ──────────────────────────────────────────────────────────── */
+function renderDrawer() {
+  osintGrid.innerHTML = '';
+  statusDots.clear();
 
-  if (!grid.children.length) {
-    grid.innerHTML = '';
-    SITES.forEach((site, i) => {
-      const card = document.createElement('div');
-      card.className = 'card';
-      card.dataset.index = i;
-      card.innerHTML =
-        '<div class="top">' +
-          '<span class="tile"><img src="' + site.img + '" alt=""></span>' +
-          '<span class="names"><span class="name">' + site.name + '</span><span class="desc">' + site.desc + '</span></span>' +
-        '</div>' +
-        '<div class="foot">' +
-          '<span class="kbd">Ctrl+' + (i + 1) + '</span>' +
-          '<span class="badge" data-badge="' + i + '"></span>' +
-          '<span class="spacer" style="flex:1"></span>' +
-          '<span class="status-dot checking" data-status="' + i + '"></span>' +
-        '</div>';
-      card.addEventListener('click', () => window.centinela.selectSite(i));
-      grid.appendChild(card);
-      probeSite(i);
-    });
-  }
+  pages.forEach(page => {
+    const card = document.createElement('div');
+    card.className = 'pcard';
+    card.title = page.name + ' — ' + page.url + (page.desc ? '\n' + page.desc : '');
 
-  SITES.forEach((site, i) => {
-    const card = grid.children[i];
-    if (!card) return;
-    card.classList.toggle('active', i === activeSite);
-    const badge = card.querySelector('[data-badge]');
-    if (openSites.has(i)) {
-      badge.textContent = i === activeSite ? 'ACTIVA' : 'EN PESTAÑA';
-      badge.className = 'badge';
+    const tile = document.createElement('span');
+    tile.className = 'ptile';
+    if (page.img) {
+      const img = document.createElement('img');
+      img.src = page.img;
+      img.alt = '';
+      tile.appendChild(img);
     } else {
-      badge.textContent = '';
-      badge.className = 'badge tab-open';
+      tile.innerHTML = WEB_ICON;
     }
+
+    const info = document.createElement('span');
+    info.className = 'pinfo';
+    const name = document.createElement('span');
+    name.className = 'pname';
+    name.textContent = page.name;
+    const host = document.createElement('span');
+    host.className = 'phost';
+    host.textContent = hostOf(page.url);
+    info.append(name, host);
+
+    card.append(tile, info);
+
+    const dot = document.createElement('span');
+    dot.className = 'status-dot checking';
+    statusDots.set(page.id, dot);
+    card.appendChild(dot);
+
+    if (!page.builtin) {
+      const x = document.createElement('span');
+      x.className = 'px';
+      x.textContent = '×';
+      x.title = 'Quitar del cajón';
+      x.addEventListener('click', ev => { ev.stopPropagation(); removePage(page.id); });
+      card.appendChild(x);
+    }
+
+    card.addEventListener('click', () => window.metatron.openPage(page.id));
+    osintGrid.appendChild(card);
   });
+
+  const mine = pages.filter(p => !p.builtin).length;
+  osintSub.textContent = pages.length + ' páginas · ' + mine + ' agregadas por vos · clic para abrir en una pestaña';
+  pages.forEach(probePage);
 }
 
-async function probeSite(i) {
-  const card = grid.children[i];
-  if (!card) return;
-  const dot = card.querySelector('[data-status]');
+async function probePage(page) {
+  if (probed.has(page.id)) return;
+  probed.add(page.id);
+  const dot = statusDots.get(page.id);
+  if (!dot) return;
   let ok = false;
   try {
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), 5000);
-    await fetch(SITES[i].probe, { method:'HEAD', mode:'no-cors', signal:ctrl.signal, cache:'no-cache' });
+    await fetch(page.url, { method:'HEAD', mode:'no-cors', signal:ctrl.signal, cache:'no-cache' });
     clearTimeout(t);
     ok = true;
   } catch (e) { ok = false; }
@@ -581,8 +651,40 @@ async function probeSite(i) {
   updateNetStatus();
 }
 
+async function addPage(ev) {
+  if (ev) ev.preventDefault();
+  const name = addName.value.trim();
+  const url = addUrl.value.trim();
+  if (!url) { toast('Escribí la URL de la web'); return; }
+  const res = await window.metatron.addPage(name, url, '');
+  if (res && res.ok) {
+    addName.value = '';
+    addUrl.value = '';
+    toast('Página agregada al cajón OSINT');
+  } else {
+    toast(res && res.error ? res.error : 'No se pudo agregar la página');
+  }
+}
+
+async function removePage(id) {
+  const res = await window.metatron.removePage(id);
+  if (res && res.ok) toast('Página quitada del cajón OSINT');
+}
+
+function setDrawer(open) {
+  drawerOpen = !!open;
+  drawerEl.classList.toggle('open', drawerOpen);
+  osintBtn.classList.toggle('active', drawerOpen);
+  setTimeout(reportChromeHeight, 40);
+}
+
+function onPagesState(list) {
+  pages = Array.isArray(list) ? list : [];
+  renderDrawer();
+}
+
 function updateNetStatus() {
-  const dots = [...grid.querySelectorAll('[data-status]')];
+  const dots = [...statusDots.values()];
   const total = dots.length;
   const online = dots.filter(d => d.classList.contains('online')).length;
   const footerDot = document.getElementById('footer-dot');
@@ -653,7 +755,7 @@ tickerTrack.addEventListener('click', e => {
   const el = e.target.closest('.ticker-item');
   if (!el) return;
   const link = el.getAttribute('data-link');
-  if (link) window.centinela.openTab(link);
+  if (link) window.metatron.openTab(link);
 });
 
 /* ── Avisos ──────────────────────────────────────────────────────────────── */
@@ -666,23 +768,29 @@ function toast(message) {
 }
 
 /* ── Interacción ─────────────────────────────────────────────────────────── */
-document.getElementById('newtab').addEventListener('click', () => window.centinela.newTab());
-document.getElementById('notes-btn').addEventListener('click', () => window.centinela.openNotes());
-document.getElementById('capture-btn').addEventListener('click', () => window.centinela.capture());
-navBack.addEventListener('click', () => window.centinela.back());
-navFwd.addEventListener('click', () => window.centinela.forward());
+document.getElementById('newtab').addEventListener('click', () => window.metatron.newTab());
+document.getElementById('notes-btn').addEventListener('click', () => window.metatron.openNotes());
+document.getElementById('capture-btn').addEventListener('click', () => window.metatron.capture());
+navBack.addEventListener('click', () => window.metatron.back());
+navFwd.addEventListener('click', () => window.metatron.forward());
 navReload.addEventListener('click', () => {
   navReload.classList.add('spinning');
   setTimeout(() => navReload.classList.remove('spinning'), 700);
-  window.centinela.reload();
+  window.metatron.reload();
 });
-document.getElementById('nav-home').addEventListener('click', () => window.centinela.home());
+document.getElementById('nav-home').addEventListener('click', () => window.metatron.home());
+
+/* Cajón OSINT */
+osintBtn.addEventListener('click', () => setDrawer(!drawerOpen));
+document.getElementById('drawer-close').addEventListener('click', () => setDrawer(false));
+document.getElementById('empty-osint').addEventListener('click', () => setDrawer(true));
+addForm.addEventListener('submit', addPage);
 
 urlInput.addEventListener('keydown', e => {
   if (e.key !== 'Enter') return;
   const value = urlInput.value.trim();
   if (!value) return;
-  window.centinela.go(value);
+  window.metatron.go(value);
   urlInput.blur();
 });
 urlInput.addEventListener('focus', () => urlInput.select());
@@ -697,7 +805,7 @@ function setEncrypted(on) {
 }
 encryptEl.addEventListener('click', () => {
   setEncrypted(!encrypted);
-  window.centinela.setEncryption(encrypted);
+  window.metatron.setEncryption(encrypted);
 });
 
 document.addEventListener('keydown', e => {
@@ -706,25 +814,33 @@ document.addEventListener('keydown', e => {
   const key = e.key.toLowerCase();
   // Ctrl+T / Ctrl+W / Ctrl+Tab los maneja el menú nativo (funcionan en cualquier pestaña).
   if (key === 'l') { e.preventDefault(); urlInput.focus(); urlInput.select(); }
+  else if (key === 'o' && e.shiftKey) { e.preventDefault(); setDrawer(!drawerOpen); }
 });
 
 /* ── Puente con el proceso principal ─────────────────────────────────────── */
-if (window.centinela.getTabs) {
-  window.centinela.getTabs().then(onTabsState).catch(() => {});
-  window.centinela.onTabs(onTabsState);
+if (window.metatron.getTabs) {
+  window.metatron.getTabs().then(onTabsState).catch(() => {});
+  window.metatron.onTabs(onTabsState);
 }
-if (window.centinela.getNews) {
-  window.centinela.getNews().then(renderTicker).catch(() => renderTicker([]));
-  window.centinela.onNews(renderTicker);
+if (window.metatron.getPages) {
+  window.metatron.getPages().then(onPagesState).catch(() => {});
+  window.metatron.onPages(onPagesState);
 }
-if (window.centinela.onToast) window.centinela.onToast(toast);
-if (window.centinela.onFocusUrl) window.centinela.onFocusUrl(() => { urlInput.focus(); urlInput.select(); });
-if (window.centinela.onEncryption) window.centinela.onEncryption(setEncrypted);
+if (window.metatron.onDrawerToggle) {
+  window.metatron.onDrawerToggle(force => setDrawer(force === true ? true : !drawerOpen));
+}
+if (window.metatron.getNews) {
+  window.metatron.getNews().then(renderTicker).catch(() => renderTicker([]));
+  window.metatron.onNews(renderTicker);
+}
+if (window.metatron.onToast) window.metatron.onToast(toast);
+if (window.metatron.onFocusUrl) window.metatron.onFocusUrl(() => { urlInput.focus(); urlInput.select(); });
+if (window.metatron.onEncryption) window.metatron.onEncryption(setEncrypted);
 
 /* El proceso principal necesita saber el alto de la barra para ubicar las vistas. */
 function reportChromeHeight() {
   const h = Math.round(document.getElementById('chrome').getBoundingClientRect().height);
-  if (h > 0 && window.centinela.setChromeHeight) window.centinela.setChromeHeight(h);
+  if (h > 0 && window.metatron.setChromeHeight) window.metatron.setChromeHeight(h);
 }
 reportChromeHeight();
 window.addEventListener('resize', reportChromeHeight);
