@@ -326,8 +326,8 @@ Verificaciones (desarrollo, via CDP):
     volver a la portada original la restaura
   - Persistencia entre reinicios: con openOnStart=session y drawerOnStart=true, al
     reabrir se recuperan las pestanas y el cajon arranca abierto
-  - Instalador regenerado con npm run dist: METATRON Setup 1.0.0.exe (79.103.030 bytes,
-    26/11/2026 21:16, SHA256 89EC6DB234A32D6DD53885B373E5E48D0A70169656C4198AFC87BED94F6EE6A3)
+  - Instalador regenerado con npm run dist: METATRON Setup 1.0.0.exe (79.106.360 bytes,
+    26/11/2026 21:20, SHA256 89EC6DB234A32D6DD53885B373E5E48D0A70169656C4198AFC87BED94F6EE6A3)
 
 Verificaciones (build empaquetado, dist\win-unpacked\METATRON.exe, via CDP):
   - Historial: 4 visitas, lista, buscador (4 -> 3), abrir desde la lista
