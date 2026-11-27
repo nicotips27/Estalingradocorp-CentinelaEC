@@ -275,6 +275,47 @@ Verificaciones (build empaquetado, dist\win-unpacked\METATRON.exe, via CDP):
   - Mismos pasos OK: arranque con 1 pestaña, + x2 -> 3, Ctrl+T -> 4, cerrar/reabrir,
     Ctrl+clic en segundo plano, URL completa y favicons reales
 
+27/11/2026 - MODO VENTANA / PANTALLA COMPLETA + ENCRYPT PERSISTENTE
+------------------------------------------------------------------
+Pedido del usuario: "que las configuraciones se guarden y se puedan modificar desde dicha
+opcion por ejemplo el modo ventana o pantalla completa y que si el usuario active el
+encriptado este este activo al volver a abrir el programa".
+
+Configuracion (main.js + settings.html):
+  - CONFIG_DEFAULTS suma fullscreen (true), encryption (false) y windowBounds (null);
+    sanitizeConfig valida windowBounds (x/y/width/height con minimo 800x600)
+  - applyWindowMode(): aplica setFullScreen segun config al arrancar y al guardar
+  - applyEncryptionState(): deja el interruptor ENCRYPT como quedo la ultima vez y avisa
+    al renderizador (encrypt:set) al terminar de cargar la ventana
+  - encryptionOn se inicializa desde appConfig.encryption (antes era false fijo y se perdia
+    al cerrar)
+  - setEncryption(on) ahora PERSISTE con setConfig({encryption:...}, silencioso) y envia el
+    estado al renderizador; el IPC 'encrypt:set' usa setEncryption (antes solo cambiaba la
+    variable en memoria sin guardar)
+  - createMain: fullscreen segun config; en modo ventana se recuperan los bounds guardados;
+    enter/leave-full-screen guardan el cambio de modo (F11 incluido); al cerrar se guardan
+    los bounds (saveWindowBounds) junto con la sesion
+  - settings.html: seccion VENTANA con dos switches (Pantalla completa, Encriptar la
+    Intra-Net); GUARDAR los aplica al instante
+
+Robustez (main.js):
+  - readJsonFile(): lee los JSON (config, historial, paginas del cajon) quitando el BOM.
+    El Bloc de notas de Windows guarda con BOM y JSON.parse fallaba, por lo que la app
+    ignoraba el archivo y usaba los valores por defecto (detectado en las pruebas: la app
+    arrancaba en pantalla completa pese a tener fullscreen:false en el config)
+
+Verificaciones (desarrollo, via CDP):
+  - Config inicial fullscreen:false + encryption:true -> la app arranca en ventana
+    1280x720 (no pantalla completa) y con ENCRYPT activo (SYS.ENCRYPTION ACTIVE)
+  - Activar ENCRYPT desde el interruptor de la barra -> config.json guarda encryption:true
+    y windowBounds {x:40,y:0,1280x720}; al reabrir, ENCRYPT sigue activo y la ventana
+    conserva su tamano y posicion
+  - Activar Pantalla completa desde Configuracion -> la ventana pasa a 1360x768 y el
+    config guarda fullscreen:true
+  - Captura real: seccion VENTANA en la pestana Configuracion
+  - Instalador regenerado con npm run dist: METATRON Setup 1.0.0.exe (79.107.302 bytes,
+    27/11/2026 00:55, SHA256 CE5E6B816C550C7A84A9B51F1C759F393D67274AF0986E14B8D6B3C72D2707A5)
+
 26/11/2026 - HISTORIAL DE NAVEGACION + CONFIGURACION GUARDADA
 -------------------------------------------------------------
 Pedido del usuario: "dado que nuestro proyecto ya es un navegador podemos agregarle un gestor

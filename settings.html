@@ -132,6 +132,24 @@
   </div>
 
   <div class="bloque">
+    <h2>VENTANA</h2>
+    <div class="fila">
+      <div class="etiqueta">
+        <b>Pantalla completa</b>
+        <span>si está apagado, METATRON abre en una ventana normal (se puede cambiar con F11 y queda guardado)</span>
+      </div>
+      <div class="ctrl"><div class="switch" id="fullscreen" title="Pantalla completa / modo ventana"></div></div>
+    </div>
+    <div class="fila">
+      <div class="etiqueta">
+        <b>Encriptar la Intra-Net</b>
+        <span>queda activo al volver a abrir el programa; también lo podés cambiar con el interruptor ENCRYPT de la barra</span>
+      </div>
+      <div class="ctrl"><div class="switch" id="encryption" title="Encriptado activo / apagado (se guarda)"></div></div>
+    </div>
+  </div>
+
+  <div class="bloque">
     <h2>PRIVACIDAD Y AVISOS</h2>
     <div class="fila">
       <div class="etiqueta">
@@ -179,13 +197,17 @@ const DEFECTO = {
   openOnStart: 'home',
   drawerOnStart: false,
   historyEnabled: true,
-  notifications: true
+  notifications: true,
+  fullscreen: true,
+  encryption: false
 };
 
 const homeInput = document.getElementById('home');
 const aviso = document.getElementById('aviso');
 const switches = {
   drawer: document.getElementById('drawer'),
+  fullscreen: document.getElementById('fullscreen'),
+  encryption: document.getElementById('encryption'),
   history: document.getElementById('history'),
   notif: document.getElementById('notif')
 };
@@ -194,6 +216,8 @@ function pintar(cfg) {
   homeInput.value = cfg.homePage || '';
   document.querySelector('input[name=inicio][value="' + (cfg.openOnStart || 'home') + '"]').checked = true;
   switches.drawer.classList.toggle('on', !!cfg.drawerOnStart);
+  switches.fullscreen.classList.toggle('on', !!cfg.fullscreen);
+  switches.encryption.classList.toggle('on', !!cfg.encryption);
   switches.history.classList.toggle('on', !!cfg.historyEnabled);
   switches.notif.classList.toggle('on', !!cfg.notifications);
 }
@@ -214,6 +238,8 @@ document.getElementById('guardar').addEventListener('click', async () => {
     homePage: homeInput.value.trim(),
     openOnStart: inicio ? inicio.value : 'home',
     drawerOnStart: switches.drawer.classList.contains('on'),
+    fullscreen: switches.fullscreen.classList.contains('on'),
+    encryption: switches.encryption.classList.contains('on'),
     historyEnabled: switches.history.classList.contains('on'),
     notifications: switches.notif.classList.contains('on')
   };

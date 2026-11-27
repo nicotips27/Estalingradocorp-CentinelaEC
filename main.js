@@ -48,7 +48,7 @@ let chromeHeight = 78;    // alto real de la barra (lo informa el renderizador)
 let tabs = [];            // { id, kind:'site'|'tool', tool, siteIndex, title, url, view, loading }
 let activeTabId = null;
 let tabSeq = 0;
-let encryptionOn = false;
+// encryptionOn se define con la configuración (queda activo al reabrir la app).
 
 function getSiteOrigin(url) {
   try { return new URL(url).origin; } catch { return null; }
@@ -388,31 +388,52 @@ const CONFIG_DEFAULTS = {
   openOnStart: 'home',       // 'home' = siempre la portada · 'session' = restaurar pestañas
   drawerOnStart: false,      // el cajón OSINT arranca cerrado
   historyEnabled: true,      // guardar el historial de navegación
-  notifications: true        // avisos del sistema (capturas, etc.)
+  notifications: true,       // avisos del sistema (capturas, etc.)
+  fullscreen: true,          // arrancar en pantalla completa (false = modo ventana)
+  encryption: false,         // "Encriptar la Intra-Net" queda activo al reabrir
+  windowBounds: null         // tamaño/posición guardados en modo ventana
 };
 
 function configFilePath() { return path.join(dataDir(), 'config.json'); }
 
+// Lee un JSON tolerando el BOM (el Bloc de notas de Windows lo agrega).
+function readJsonFile(file) {
+  try {
+    const raw = fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, '');
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) { return null; }
+}
+
 function readConfig() {
   const cfg = { ...CONFIG_DEFAULTS };
-  try {
-    const data = JSON.parse(fs.readFileSync(configFilePath(), 'utf8'));
-    if (data && typeof data === 'object') {
-      for (const k of Object.keys(CONFIG_DEFAULTS)) {
-        if (k in data && data[k] !== undefined && data[k] !== null) cfg[k] = data[k];
-      }
+  const data = readJsonFile(configFilePath());
+  if (data && typeof data === 'object') {
+    for (const k of Object.keys(CONFIG_DEFAULTS)) {
+      if (k in data && data[k] !== undefined && data[k] !== null) cfg[k] = data[k];
     }
-  } catch (e) {}
+  }
   return sanitizeConfig(cfg);
 }
 
 function sanitizeConfig(input) {
+  let bounds = null;
+  const b = input && input.windowBounds;
+  if (b && typeof b === 'object') {
+    const x = Number(b.x), y = Number(b.y), w = Number(b.width), h = Number(b.height);
+    if (Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(w) && Number.isFinite(h) &&
+        w >= 800 && h >= 600) {
+      bounds = { x, y, width: w, height: h };
+    }
+  }
   return {
     homePage: normalizeWebUrl(input && input.homePage) || CONFIG_DEFAULTS.homePage,
     openOnStart: input && input.openOnStart === 'session' ? 'session' : 'home',
     drawerOnStart: !!(input && input.drawerOnStart),
     historyEnabled: !!(input && input.historyEnabled),
-    notifications: !!(input && input.notifications)
+    notifications: !!(input && input.notifications),
+    fullscreen: !!(input && input.fullscreen),
+    encryption: !!(input && input.encryption),
+    windowBounds: bounds
   };
 }
 
@@ -427,6 +448,7 @@ function writeConfig(cfg) {
 }
 
 let appConfig = readConfig();
+let encryptionOn = appConfig.encryption;
 
 // Aplica la configuración vigente (se llama al arrancar y al guardar cambios).
 function applyConfig(cfg, avisar) {
@@ -453,10 +475,13 @@ function applyConfig(cfg, avisar) {
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send('drawer:toggle', cfg.drawerOnStart);
   }
+  // Pantalla completa / modo ventana y estado del interruptor ENCRYPT.
+  applyWindowMode();
+  if (encryptionOn !== !!cfg.encryption) applyEncryptionState();
   if (avisar) toastToLauncher('Configuración guardada');
 }
 
-function setConfig(patch) {
+function setConfig(patch, silencioso) {
   const merged = { ...readConfig() };
   if (patch && typeof patch === 'object') {
     for (const k of Object.keys(CONFIG_DEFAULTS)) {
@@ -465,8 +490,33 @@ function setConfig(patch) {
   }
   const cfg = sanitizeConfig(merged);
   const ok = writeConfig(cfg);
-  if (ok) applyConfig(cfg, true);
+  if (ok) applyConfig(cfg, !silencioso);
   return { ok, config: cfg };
+}
+
+// Aplica pantalla completa / modo ventana según la configuración.
+function applyWindowMode() {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  const quiere = !!appConfig.fullscreen;
+  if (mainWindow.isFullScreen() !== quiere) mainWindow.setFullScreen(quiere);
+}
+
+// Deja el interruptor ENCRYPT como indique la configuración (y lo avisa al renderer).
+function applyEncryptionState() {
+  encryptionOn = !!appConfig.encryption;
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('encrypt:set', encryptionOn);
+  }
+  buildMenu();
+}
+
+// Recuerda el tamaño y la posición de la ventana (modo ventana).
+function saveWindowBounds() {
+  if (!mainWindow || mainWindow.isDestroyed() || mainWindow.isFullScreen()) return;
+  try {
+    const b = mainWindow.getBounds();
+    setConfig({ windowBounds: { x: b.x, y: b.y, width: b.width, height: b.height } }, true);
+  } catch (e) {}
 }
 
 function notify(mensaje) {
@@ -485,10 +535,8 @@ function historyFilePath() { return path.join(dataDir(), 'historial.json'); }
 function readHistory() {
   if (historyCache) return historyCache;
   let list = [];
-  try {
-    const data = JSON.parse(fs.readFileSync(historyFilePath(), 'utf8'));
-    list = Array.isArray(data.items) ? data.items : (Array.isArray(data) ? data : []);
-  } catch (e) { list = []; }
+  const data = readJsonFile(historyFilePath());
+  list = Array.isArray(data && data.items) ? data.items : (Array.isArray(data) ? data : []);
   historyCache = list.filter(h => h && typeof h.url === 'string');
   return historyCache;
 }
@@ -748,8 +796,12 @@ function buildMenu() {
 }
 
 function setEncryption(on) {
-  encryptionOn = !!on;
+  const next = !!on;
+  if (encryptionOn === next) { buildMenu(); return; }
+  encryptionOn = next;
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('encrypt:set', encryptionOn);
+  // El interruptor queda guardado: al reabrir METATRON sigue activo.
+  setConfig({ encryption: encryptionOn }, true);
   buildMenu();
 }
 
@@ -1022,11 +1074,8 @@ function pagesFilePath() { return path.join(dataDir(), 'paginas.json'); }
 
 function readCustomPages() {
   let list = [];
-  try {
-    const raw = fs.readFileSync(pagesFilePath(), 'utf8');
-    const data = JSON.parse(raw);
-    list = Array.isArray(data) ? data : (Array.isArray(data.pages) ? data.pages : []);
-  } catch (e) { return []; }
+  const data = readJsonFile(pagesFilePath());
+  list = Array.isArray(data) ? data : (Array.isArray(data && data.pages) ? data.pages : []);
 
   const out = [];
   for (const p of list) {
@@ -1739,13 +1788,18 @@ function createSplash() {
 }
 
 function createMain() {
+  // Modo ventana: se recupera el tamaño y la posición guardados.
+  const bounds = (!appConfig.fullscreen && appConfig.windowBounds)
+    ? appConfig.windowBounds : null;
   mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 800,
+    width: bounds ? Math.round(bounds.width) : 1280,
+    height: bounds ? Math.round(bounds.height) : 800,
+    x: bounds ? Math.round(bounds.x) : undefined,
+    y: bounds ? Math.round(bounds.y) : undefined,
     minWidth: 800,
     minHeight: 600,
     show: false,
-    fullscreen: true,
+    fullscreen: !!appConfig.fullscreen,
     autoHideMenuBar: false,
     backgroundColor: '#0d0d0d',
     icon: path.join(__dirname, 'icon.png'),
@@ -1763,16 +1817,23 @@ function createMain() {
   const layoutViewsNow = () => layoutViews();
 
   mainWindow.on('resize', layoutViewsNow);
-  mainWindow.on('enter-full-screen', layoutViewsNow);
-  mainWindow.on('leave-full-screen', layoutViewsNow);
+  mainWindow.on('enter-full-screen', () => {
+    layoutViews();
+    // El cambio de modo (F11 o desde Configuración) queda guardado.
+    if (appConfig.fullscreen !== true) setConfig({ fullscreen: true }, true);
+  });
+  mainWindow.on('leave-full-screen', () => {
+    layoutViews();
+    if (appConfig.fullscreen !== false) setConfig({ fullscreen: false }, true);
+  });
 
-  // Al cerrar se guardan las pestañas abiertas para recuperarlas la próxima vez.
-  mainWindow.on('close', () => saveSession());
+  // Al cerrar se guardan las pestañas abiertas, el modo ventana y la sesión.
+  mainWindow.on('close', () => { saveWindowBounds(); saveSession(); });
 
   const reveal = () => {
     if (splashWindow && !splashWindow.isDestroyed()) splashWindow.close();
     if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.setFullScreen(true);
+      applyWindowMode();
       mainWindow.show();
       mainWindow.focus();
     }
@@ -1786,6 +1847,8 @@ function createMain() {
     pushPagesState();
     // El cajón arranca según la configuración guardada.
     toggleDrawer(appConfig.drawerOnStart);
+    // El interruptor ENCRYPT arranca como quedó la última vez.
+    applyEncryptionState();
   });
 
   setTimeout(reveal, SPLASH_MIN_MS + 10000);
@@ -1875,10 +1938,7 @@ app.whenReady().then(async () => {
     layoutViews();
   });
 
-  ipcMain.on('encrypt:set', (event, on) => {
-    encryptionOn = !!on;
-    buildMenu();
-  });
+  ipcMain.on('encrypt:set', (event, on) => setEncryption(on));
 
   ipcMain.handle('news:get', () => newsItems);
 

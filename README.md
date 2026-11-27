@@ -170,6 +170,8 @@ Se abre con el botón **CONFIG** del pie, el menú **Herramientas** o **Ctrl+,**
 | **Página de inicio** | La web que abre el botón Inicio (Ctrl+H) y la primera tarjeta del cajón OSINT. Al cambiarla, las pestañas que la tenían abierta se actualizan solas. |
 | **Al abrir METATRON** | Arrancar siempre con la portada o **restaurar las pestañas** de la sesión anterior. |
 | **Cajón OSINT al arrancar** | Abierto o cerrado (para que la web arranque a pantalla completa). |
+| **Pantalla completa** | Si está apagado, METATRON abre en **ventana normal**; se puede cambiar con F11 y el modo (y el tamaño y la posición de la ventana) queda guardado. |
+| **Encriptar la Intra-Net** | El interruptor **ENCRYPT** de la barra **queda activo al volver a abrir** el programa (también lo podés cambiar desde la barra o el menú). |
 | **Guardar historial** | Activa o desactiva el registro de visitas. |
 | **Notificaciones del sistema** | El aviso al guardar una captura de pantalla. |
 
@@ -472,3 +474,7 @@ El instalador es un **programa de uso interno** que no está firmado digitalment
   - **Gestor de historial** como pestaña de herramienta (botón **HISTORIAL** del pie, menú **Herramientas** o Ctrl+Shift+H): visitas agrupadas por día (HOY / AYER / fecha) con favicon, título, dominio y hora; **buscador** (Ctrl+F) por título o dirección; clic abre en la pestaña actual, `+` o clic medio en una pestaña nueva, `×` borra una visita y **VACIAR** borra todo. Se guarda en `%APPDATA%\METATRON\historial.json` (hasta 3000 visitas) y se puede desactivar.
   - **Configuración** como pestaña de herramienta (botón **CONFIG** del pie, menú **Herramientas** o Ctrl+,) guardada en `%APPDATA%\METATRON\config.json`: **página de inicio** configurable (las pestañas que la tenían abierta se actualizan solas), **al abrir** (portada o restaurar las pestañas de la sesión anterior), **cajón OSINT al arrancar** (abierto o cerrado), **guardar historial** y **notificaciones del sistema**.
   - Las notas, el historial, las webs del cajón, la sesión y la configuración viven todos en `%APPDATA%\METATRON\`, fuera de lo que borra el desinstalador.
+- **26/11/2026: pantalla completa / modo ventana y ENCRYPT que se guarda.**
+  - **Pantalla completa** configurable: con el interruptor apagado, METATRON abre en **ventana normal**; con F11 o desde Configuración se cambia y el modo queda guardado. En modo ventana también se recuerda el **tamaño y la posición** de la ventana (`windowBounds` en `config.json`).
+  - **El interruptor ENCRYPT queda activo al reabrir**: si activás *Encriptar la Intra-Net* (en la barra, el menú o Configuración), al volver a abrir METATRON sigue activo y la interfaz arranca con el estado `SYS.ENCRYPTION ACTIVE`.
+  - Los `JSON` de configuración, historial y páginas del cajón se leen tolerando el **BOM** (el que agrega el Bloc de notas de Windows), que antes hacía que la app ignorara el archivo.
