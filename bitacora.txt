@@ -275,6 +275,34 @@ Verificaciones (build empaquetado, dist\win-unpacked\METATRON.exe, via CDP):
   - Mismos pasos OK: arranque con 1 pestaña, + x2 -> 3, Ctrl+T -> 4, cerrar/reabrir,
     Ctrl+clic en segundo plano, URL completa y favicons reales
 
+27/11/2026 - FIX: FAVICONS DE LAS PESTANAS SE VEIAN MAL
+------------------------------------------------------
+Reporte del usuario: "abri facebook en una pestaña y su logo sale mal al igual que de otras
+paginas en las pestañas".
+
+Causa raiz: en renderTabs() se creaba el <img> del favicon SIN regla de tamaño, asi que se
+dibujaba a su tamaño natural (Facebook sirve un .ico de 48 px, Wikipedia de 32 px, GitHub un
+PNG grande) y desbordaba el cuadradito de 13 px: se veía cortado, gigante o pixelado.
+
+Correcciones:
+  - home.html CSS: .tab .fav img { width:100%; height:100%; object-fit:contain; display:block }
+    y overflow:hidden en .tab .fav, para que cualquier favicon entre en el cuadradito
+  - main.js: elegirFavicon() elige el mejor candidato de los que informa el sitio: descarta
+    los SVG y las variantes gigantes (apple-touch-icon, 325x325, 192, 512, 256, 180, 152,
+    144) porque a 13 px se ven borrosos, y prefiere PNG/ICO/JPG chicos
+  - home.html: dibujarFavicon() + inicialHost(): si el sitio no tiene favicon utilizable (o
+    falla la carga) se muestra la INICIAL del dominio, siempre limpia y legible
+  - history.html: mismos criterios (object-fit:contain, inicial de respaldo)
+
+Verificado (desarrollo, via CDP) con 4 sitios reales:
+  - Facebook: static.xx.fbcdn.net/.../ay1hV6OlegS.ico -> img 11x11, sin desbordar, cargada
+  - Wikipedia: wikipedia.ico -> 11x11
+  - GitHub: favicons/favicon-dark.png -> 11x11 (elegida bien la variante dark)
+  - estalingradocorp.com.ar: assets/logo.jpg -> 11x11
+  - Captura real de la barra con las 4 pestañas: logos nítidos y del mismo tamaño
+  - Instalador regenerado con npm run dist: METATRON Setup 1.0.0.exe (79.110.996 bytes,
+    27/11/2026, SHA256 8B8A9AAB83F1EAC365BE9D9F11B1C97515E7658D0CFC3E5A6358E15B0267DAB3)
+
 27/11/2026 - OPCIONES BASICAS DE NAVEGADOR (DESCARGAS, FAVORITOS, CTRL+F, PERMISOS)
 ---------------------------------------------------------------------------------
 Pedido del usuario: "OK ANALIZA EL PROYECTO Y BUSCA AGREGARLE LAS OPCIONES BASICAS DE UN

@@ -1519,11 +1519,30 @@ function createWebTab(url, opts = {}) {
     refreshHistoryTitle(tab.url, tab.pageTitle);
     pushTabsState();
   });
-  // Favicon real del sitio: se muestra en la pestaña (como en un navegador).
+  // Elige el favicon más adecuado de los que informa el sitio: se descartan los
+  // SVG y las variantes gigantes (apple-touch-icon, 192/325/512…), que a 13 px
+  // se ven borrosos o desbordan. Los que sirvan otro formato se usan tal cual.
+function elegirFavicon(lista) {
+  const validos = (lista || []).filter(f => /^https?:\/\//i.test(f));
+  if (!validos.length) return '';
+  const peso = url => {
+    const u = String(url).toLowerCase();
+    if (/\.svg(\?|$)/.test(u)) return 4;
+    if (/(apple|mask-icon|precomposed)/.test(u)) return 3;
+    if (/(325|192|512|256|180|152|144)/.test(u)) return 2;
+    if (/\.(png|ico|jpe?g|webp|gif)(\?|$)/.test(u)) return 0;
+    return 1;
+  };
+  const ordenados = validos.slice().sort((a, b) => peso(a) - peso(b));
+  return ordenados[0];
+}
+
+// Favicon real del sitio: se muestra en la pestaña (como en un navegador).
   wc.on('page-favicon-updated', (event, favicons) => {
-    const first = (favicons || []).find(f => /^https?:\/\//i.test(f));
-    if (!first) return;
-    tab.fav = first;
+    const elegido = elegirFavicon(favicons);
+    if (!elegido) return;
+    if (tab.fav === elegido) return;
+    tab.fav = elegido;
     pushTabsState();
   });
   wc.on('did-navigate', (event, navUrl) => {

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -98,7 +98,13 @@
   }
   .tab .fav {
     width:13px; height:13px; flex:none; object-fit:cover;
-    border:1px solid var(--line-2); border-radius:1px;
+    border:1px solid var(--line-2); border-radius:1px; overflow:hidden;
+  }
+  /* El favicon del sitio se ajusta al cuadradito (si no, uno grande desborda) */
+  .tab .fav img { width:100%; height:100%; object-fit:contain; display:block; }
+  .fav-letra {
+    display:grid; place-items:center; width:100%; height:100%;
+    font-size:8px; font-weight:600; color:var(--text-2); letter-spacing:0;
   }
   .tab .fav.tool { display:grid; place-items:center; color:var(--blue-2); }
   .tab .fav.web { display:grid; place-items:center; color:var(--cyan); }
@@ -537,6 +543,29 @@ function hostOf(url) {
   try { return new URL(url).host.replace(/^www\./, ''); } catch (e) { return ''; }
 }
 
+/* ── Favicons de las pestañas ─────────────────────────────────────────────── */
+// Inicial del dominio: se usa cuando el sitio no tiene favicon utilizable.
+function inicialHost(url) {
+  try {
+    const h = new URL(url).hostname.replace(/^www\./, '');
+    return (h[0] || '?').toUpperCase();
+  } catch (e) { return '?'; }
+}
+
+// Dibuja el favicon dentro del cuadradito; si no se puede, la inicial del dominio.
+function dibujarFavicon(contenedor, url, fav) {
+  contenedor.innerHTML = '';
+  if (fav) {
+    const img = document.createElement('img');
+    img.src = fav;
+    img.alt = '';
+    img.onerror = () => { contenedor.innerHTML = '<span class="fav-letra">' + inicialHost(url) + '</span>'; };
+    contenedor.appendChild(img);
+  } else {
+    contenedor.innerHTML = '<span class="fav-letra">' + inicialHost(url) + '</span>';
+  }
+}
+
 function renderTabs() {
   tabsEl.innerHTML = '';
 
@@ -563,13 +592,9 @@ function renderTabs() {
       img.alt = '';
       fav.appendChild(img);
     } else if (tab.fav) {
-      const img = document.createElement('img');
-      img.src = tab.fav;
-      img.alt = '';
-      img.onerror = () => { fav.innerHTML = WEB_ICON; };
-      fav.appendChild(img);
+      dibujarFavicon(fav, tab.url, tab.fav);
     } else {
-      fav.innerHTML = WEB_ICON;
+      dibujarFavicon(fav, tab.url, '');
     }
 
     const title = document.createElement('span');

@@ -61,7 +61,8 @@
     width:16px;height:16px;flex:none;display:grid;place-items:center;overflow:hidden;
     background:var(--bg);border:1px solid var(--line-2);color:var(--cyan);
   }
-  .item .fav img{width:100%;height:100%;object-fit:cover;display:block}
+  .item .fav img{width:100%;height:100%;object-fit:contain;display:block}
+  .item .fav .fav-letra{font-size:8px;font-weight:600;color:var(--text-2)}
   .item .fav svg{width:11px;height:11px}
   .item .txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
   .item .t{font-size:11px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -120,6 +121,14 @@ const q = document.getElementById('q');
 
 let entradas = [];
 
+// Inicial del dominio: se usa cuando el sitio no tiene favicon utilizable.
+function inicialHost(url) {
+  try {
+    const h = new URL(url).hostname.replace(/^www\./, '');
+    return (h[0] || '?').toUpperCase();
+  } catch (e) { return '?'; }
+}
+
 function host(url) { try { return new URL(url).hostname.replace(/^www\./, ''); } catch (e) { return ''; } }
 
 function etiquetaDia(ts) {
@@ -177,10 +186,10 @@ function render(items) {
       const img = document.createElement('img');
       img.src = item.fav;
       img.alt = '';
-      img.onerror = () => { fav.innerHTML = WEB_ICON; };
+      img.onerror = () => { fav.innerHTML = '<span class="fav-letra">' + inicialHost(item.url) + '</span>'; };
       fav.appendChild(img);
     } else {
-      fav.innerHTML = WEB_ICON;
+      fav.innerHTML = '<span class="fav-letra">' + inicialHost(item.url) + '</span>';
     }
 
     const txt = document.createElement('div');
