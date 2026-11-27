@@ -852,7 +852,12 @@ if (window.metatron.getPages) {
   window.metatron.onPages(onPagesState);
 }
 if (window.metatron.onDrawerToggle) {
-  window.metatron.onDrawerToggle(force => setDrawer(force === true ? true : !drawerOpen));
+  // 'abrir' / 'cerrar' son explícitos; cualquier otra cosa alterna (Ctrl+Shift+O).
+  window.metatron.onDrawerToggle(modo => {
+    if (modo === 'abrir') setDrawer(true);
+    else if (modo === 'cerrar') setDrawer(false);
+    else setDrawer(!drawerOpen);
+  });
 }
 if (window.metatron.getNews) {
   window.metatron.getNews().then(renderTicker).catch(() => renderTicker([]));

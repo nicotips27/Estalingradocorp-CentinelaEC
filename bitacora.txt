@@ -275,6 +275,33 @@ Verificaciones (build empaquetado, dist\win-unpacked\METATRON.exe, via CDP):
   - Mismos pasos OK: arranque con 1 pestaña, + x2 -> 3, Ctrl+T -> 4, cerrar/reabrir,
     Ctrl+clic en segundo plano, URL completa y favicons reales
 
+27/11/2026 - BUG: ENCRYPT ABRIA EL CAJON OSINT
+---------------------------------------------
+Reporte del usuario: "por que al activa y desactivar el encrip se abre el cajon osint?".
+
+Causa raiz: applyConfig() (que corre cada vez que se guarda cualquier configuracion,
+incluido ENCRYPT, el modo ventana y el cierre de la app) enviaba al renderizador
+'drawer:toggle' con el valor de drawerOnStart. Como drawerOnStart es false por defecto,
+y el handler hacia setDrawer(force === true ? true : !drawerOpen), un false equivalia a
+ALTERNAR: con el cajon cerrado se abria (y con el cajon abierto se cerraria).
+
+Correccion:
+  - main.js: setDrawerMode(modo) con modo 'abrir' | 'cerrar' | 'toggle' (sin ambiguedad);
+    toggleDrawer() ahora solo alterna (lo usa Ctrl+Shift+O)
+  - applyConfig(): solo envia el estado del cajon si la preferencia "Cajon OSINT al
+    arrancar" CAMBIO (drawerAntes !== cfg.drawerOnStart). Guardar ENCRYPT, historial,
+    notificaciones o el modo ventana ya no toca el cajon
+  - home.html: onDrawerToggle interpreta 'abrir' / 'cerrar' / resto = alternar
+
+Verificaciones (desarrollo, via CDP):
+  - Arranque con el cajon cerrado (79px)
+  - Activar ENCRYPT: el cajon sigue cerrado; desactivarlo: sigue cerrado
+  - Ctrl+Shift+O abre (209px) y la X cierra (79px)
+  - Cambiar "Cajon OSINT al arrancar" en Configuracion y GUARDAR: ahora si se aplica al
+    instante (feedback correcto)
+  - Instalador regenerado con npm run dist: METATRON Setup 1.0.0.exe (79.107.186 bytes,
+    27/11/2026 01:14, SHA256 608711DDC0FE77438A37A837D4FE3B55F373037FAE95942C3667F9F36B34799D)
+
 27/11/2026 - MODO VENTANA / PANTALLA COMPLETA + ENCRYPT PERSISTENTE
 ------------------------------------------------------------------
 Pedido del usuario: "que las configuraciones se guarden y se puedan modificar desde dicha

@@ -453,6 +453,7 @@ let encryptionOn = appConfig.encryption;
 // Aplica la configuración vigente (se llama al arrancar y al guardar cambios).
 function applyConfig(cfg, avisar) {
   const homeAntes = HOME_PAGE.url;
+  const drawerAntes = appConfig.drawerOnStart;
   appConfig = cfg;
   // La página de inicio configurable se refleja en el cajón OSINT y en Ctrl+H.
   HOME_PAGE.url = cfg.homePage;
@@ -472,8 +473,10 @@ function applyConfig(cfg, avisar) {
     }
     pushTabsState();
   }
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('drawer:toggle', cfg.drawerOnStart);
+  // El cajón sólo se toca si la preferencia "Cajón OSINT al arrancar" cambió:
+  // guardar otra cosa (ENCRYPT, historial, modo ventana…) NO debe abrirlo ni cerrarlo.
+  if (drawerAntes !== cfg.drawerOnStart) {
+    setDrawerMode(cfg.drawerOnStart ? 'abrir' : 'cerrar');
   }
   // Pantalla completa / modo ventana y estado del interruptor ENCRYPT.
   applyWindowMode();
@@ -654,11 +657,15 @@ function restoreSession() {
   return true;
 }
 
-// Abre / cierra el cajón OSINT (el panel vive en el renderizador).
-function toggleDrawer(force) {
+// Abre / cierra / alterna el cajón OSINT (el panel vive en el renderizador).
+// modo: 'abrir' | 'cerrar' | 'toggle' (así nunca queda aambiguo).
+function setDrawerMode(modo) {
   if (!mainWindow || mainWindow.isDestroyed()) return;
-  mainWindow.webContents.send('drawer:toggle', force === true);
+  const valor = (modo === 'abrir' || modo === 'cerrar') ? modo : 'toggle';
+  mainWindow.webContents.send('drawer:toggle', valor);
 }
+
+function toggleDrawer() { setDrawerMode('toggle'); }
 
 function toastToLauncher(message) {
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('toast', message);
@@ -1846,7 +1853,7 @@ function createMain() {
     pushTabsState();
     pushPagesState();
     // El cajón arranca según la configuración guardada.
-    toggleDrawer(appConfig.drawerOnStart);
+    setDrawerMode(appConfig.drawerOnStart ? 'abrir' : 'cerrar');
     // El interruptor ENCRYPT arranca como quedó la última vez.
     applyEncryptionState();
   });
