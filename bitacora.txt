@@ -275,6 +275,57 @@ Verificaciones (build empaquetado, dist\win-unpacked\METATRON.exe, via CDP):
   - Mismos pasos OK: arranque con 1 pestaña, + x2 -> 3, Ctrl+T -> 4, cerrar/reabrir,
     Ctrl+clic en segundo plano, URL completa y favicons reales
 
+27/11/2026 - OPCIONES BASICAS DE NAVEGADOR (DESCARGAS, FAVORITOS, CTRL+F, PERMISOS)
+---------------------------------------------------------------------------------
+Pedido del usuario: "OK ANALIZA EL PROYECTO Y BUSCA AGREGARLE LAS OPCIONES BASICAS DE UN
+NAVIGADOR Y PARA QUE ESTE FUNCIONE OPTIMAMENTE".
+
+Descargas (main.js + preload.js + home.html):
+  - session.defaultSession 'will-download': se guardan en Descargas\METATRON (se crea la
+    carpeta), con el nombre sanitizado, progreso en el pie de la barra ("nombre · %"),
+    aviso al empezar y al terminar, notificacion del sistema con clic para ver el archivo y
+    boton "↓ DESCARGAS" en el pie para abrir la carpeta
+  - menu Ver: "Abrir carpeta de descargas"
+
+Favoritos (main.js + preload.js + home.html):
+  - bookmarkActiveTab(): agrega la pestana actual al cajon OSINT (addCustomPage) y lo abre;
+    valida duplicados y avisa si ya esta
+  - Boton de marcador (solo icono) en la barra, atajo Ctrl+D global (before-input-event,
+    funciona con cualquier pestaña activa) y opcion en el menu METATRON
+
+Buscar dentro de la pagina / Ctrl+F (main.js + preload.js + home.html):
+  - Barra flotante #findbar con input, contador "n/total", flechas arriba/abajo y cierre
+  - webContents.findInPage con findNext en TRUE: con false Electron no siempre emite
+    'found-in-page' y no se podia mostrar el contador (detectado y corregido en pruebas)
+  - Evento found-in-page reenviado al renderizador solo desde la pestana activa
+  - F3 / Shift+F3 siguiente y anterior, Enter siguiente, Esc cierra
+
+Permisos (main.js):
+  - setPermissionCheckHandler y setPermissionRequestHandler conceden microfono, camara,
+    geolocalizacion y notificaciones (las piden las plataformas; al ser navegador interno
+    se conceden para que los sitios funcionen completos)
+
+Atajos universales (main.js):
+  - F5 recargar, Ctrl+F5 recargar sin cache, Alt+Left / Alt+Right atras y adelante,
+    Ctrl+P imprimir (webContents.print), Ctrl+D marcador, Ctrl+F buscar
+
+Barra de progreso de carga (main.js + home.html):
+  - did-change-loading-progress de la pestana activa -> IPC load-progress -> #loadbar
+    (2px arriba del chrome, se desvanece al terminar)
+
+Verificaciones (desarrollo, via CDP):
+  - Descarga: servidor local con Content-Disposition -> el archivo se guardo en
+    Descargas\METATRON\prueba-metatron.txt con el contenido correcto; el pie mostro
+    "descarga completa · prueba-metatron.txt"
+  - Marcador: la pestana activa (Wikipedia) quedo en el cajon OSINT y persistio en
+    %APPDATA%\METATRON\paginas.json; el cajon se abrio solo
+  - Ctrl+F: contador 2/1291 al escribir en el input, 3/1291 con F3/Enter, 0/0 con una
+    palabra que no existe (comportamiento normal)
+  - Permisos: pedir geolocalizacion desde una pagina no bloquea la carga
+  - Barra de progreso: #loadbar en 'on' durante la carga
+  - Instalador regenerado con npm run dist: METATRON Setup 1.0.0.exe (79.110.054 bytes,
+    27/11/2026, SHA256 E2ED9D9A12929A3B0E8142BE1712D777F7D3036A11AF69CA5C979BBCFD691B27)
+
 27/11/2026 - BARRA: ANOTADOR Y CAPTURA SOLO ICONOS + BOTON DE AJUSTES
 --------------------------------------------------------------------
 Pedido del usuario: "haz que el boton anotador y capturea sean solo iconos y agrega el

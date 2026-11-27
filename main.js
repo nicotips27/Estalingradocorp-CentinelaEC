@@ -687,6 +687,23 @@ function attachModuleShortcuts(wc) {
         event.preventDefault();
         openSiteTab(n - 1);
       }
+      // Ctrl+D: agrega la pestaña actual al cajón OSINT.
+      if (key === 'd' && !e.shiftKey) {
+        event.preventDefault();
+        bookmarkActiveTab();
+        return;
+      }
+      // Ctrl+F: buscar texto dentro de la página activa.
+      if (key === 'f' && !e.shiftKey) {
+        event.preventDefault();
+        openFind();
+        return;
+      }
+      // F3 / Shift+F3: siguiente / anterior coincidencia.
+      if (key === 'F3') {
+        event.preventDefault();
+        runFindInPage(!input.shift);
+      }
     });
   } catch (e) {}
 }
@@ -703,6 +720,7 @@ function buildMenu() {
         { label: 'Nueva pestaña', accelerator: 'CmdOrCtrl+T', click: () => openHomePage({ newTab: true }) },
         { label: 'Reabrir pestaña cerrada', accelerator: 'CmdOrCtrl+Shift+T', enabled: closedTabs.length > 0, click: () => reopenLastClosed() },
         { label: 'Cajón OSINT', accelerator: 'CmdOrCtrl+Shift+O', click: () => toggleDrawer() },
+        { label: 'Agregar esta página al cajón OSINT', accelerator: 'CmdOrCtrl+D', click: () => bookmarkActiveTab() },
         { label: 'Cerrar pestaña', accelerator: 'CmdOrCtrl+W', enabled: !!tab, click: () => closeActiveTab() },
         { type: 'separator' },
         {
@@ -724,11 +742,18 @@ function buildMenu() {
     {
       label: 'Ver',
       submenu: [
-        { label: 'Recargar', accelerator: 'CmdOrCtrl+R', click: () => navReload(false) },
+        { label: 'Recargar', accelerator: 'F5', click: () => navReload(false) },
+        { label: 'Recargar (alternativo)', accelerator: 'CmdOrCtrl+R', click: () => navReload(false) },
         { label: 'Recargar sin caché', accelerator: 'CmdOrCtrl+Shift+R', click: () => navReload(true) },
+        { label: 'Recargar sin caché (alternativo)', accelerator: 'Ctrl+F5', click: () => navReload(true) },
         { type: 'separator' },
-        { label: 'Atrás', enabled: flags.back, click: () => navBack() },
-        { label: 'Adelante', enabled: flags.forward, click: () => navForward() },
+        { label: 'Atrás', accelerator: 'Alt+Left', enabled: flags.back, click: () => navBack() },
+        { label: 'Adelante', accelerator: 'Alt+Right', enabled: flags.forward, click: () => navForward() },
+        { type: 'separator' },
+        { label: 'Imprimir', accelerator: 'CmdOrCtrl+P', click: () => {
+          const wc = activeWebContents();
+          if (wc && wc.print) wc.print({ printBackground: true }, () => {});
+        }},
         { type: 'separator' },
         { label: 'Agrandar', accelerator: 'CmdOrCtrl+=', click: () => zoomBy(0.1) },
         { label: 'Achicar', accelerator: 'CmdOrCtrl+-', click: () => zoomBy(-0.1) },
@@ -746,6 +771,15 @@ function buildMenu() {
             try {
               fs.mkdirSync(capturesDir(), { recursive: true });
               shell.openPath(capturesDir());
+            } catch (e) {}
+          }
+        },
+        {
+          label: 'Abrir carpeta de descargas',
+          click: () => {
+            try {
+              fs.mkdirSync(downloadsDir(), { recursive: true });
+              shell.openPath(downloadsDir());
             } catch (e) {}
           }
         }
@@ -1467,7 +1501,19 @@ function createWebTab(url, opts = {}) {
   });
 
   wc.on('did-start-loading', () => { tab.loading = true; pushTabsState(); });
-  wc.on('did-stop-loading', () => { tab.loading = false; pushTabsState(); buildMenu(); });
+  wc.on('did-stop-loading', () => { tab.loading = false; pushTabsState(); buildMenu(); sendLoadProgress(1); });
+  wc.on('did-change-loading-progress', (p) => {
+    if (tab.id === activeTabId) sendLoadProgress(p);
+  });
+  // Resultado de "buscar en la página" (contador de coincidencias).
+  wc.on('found-in-page', (event, result) => {
+    if (tab.id !== activeTabId) return;
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    mainWindow.webContents.send('find:result', {
+      activeMatchOrdinal: result.activeMatchOrdinal,
+      matches: result.matches
+    });
+  });
   wc.on('page-title-updated', (event, title) => {
     tab.pageTitle = title || fallbackTitle;
     refreshHistoryTitle(tab.url, tab.pageTitle);
@@ -1794,6 +1840,137 @@ function createSplash() {
   splashWindow.on('closed', () => { splashWindow = null; });
 }
 
+// ── Descargas (como cualquier navegador) ──────────────────────────────────────
+function downloadsDir() {
+  return path.join(app.getPath('downloads'), 'METATRON');
+}
+
+function sanitizeFileName(name) {
+  const limpio = String(name || 'descarga').replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').trim();
+  return limpio.slice(0, 120) || 'descarga';
+}
+
+function bytesLabel(n) {
+  const v = Number(n) || 0;
+  if (v < 1024) return Math.round(v) + ' B';
+  if (v < 1024 * 1024) return (v / 1024).toFixed(0) + ' KB';
+  return (v / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+// Estado de la descarga en curso (lo muestra el pie de la barra).
+let descargaActual = null;
+let descargaUltimoAviso = 0;
+
+function pushDownloadStatus() {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  mainWindow.webContents.send('download-status', descargaActual);
+}
+
+function setupDownloads() {
+  session.defaultSession.on('will-download', (event, item) => {
+    const dir = downloadsDir();
+    try { fs.mkdirSync(dir, { recursive: true }); } catch (e) {}
+    const file = path.join(dir, sanitizeFileName(item.getFilename()));
+    item.setSavePath(file);
+
+    descargaActual = { nombre: path.basename(file), recibidos: 0, total: item.getTotalBytes() || 0 };
+    pushDownloadStatus();
+    toastToLauncher('Descargando ' + path.basename(file) + '…');
+
+    item.on('updated', () => {
+      descargaActual = {
+        nombre: path.basename(file),
+        recibidos: item.getReceivedBytes(),
+        total: item.getTotalBytes() || 0
+      };
+      const ahora = Date.now();
+      if (ahora - descargaUltimoAviso > 500) { descargaUltimoAviso = ahora; pushDownloadStatus(); }
+    });
+
+    item.on('done', (_e, state) => {
+      if (state === 'completed') {
+        descargaActual = { nombre: path.basename(file), recibidos: 1, total: 1, listo: true };
+        pushDownloadStatus();
+        toastToLauncher('Descarga completa · ' + path.basename(file));
+        try {
+          const n = new Notification({
+            title: 'Descarga completa',
+            body: path.basename(file) + ' · guardada en Descargas\\METATRON',
+            silent: true
+          });
+          n.on('click', () => shell.showItemInFolder(file));
+          n.show();
+        } catch (e) {}
+        setTimeout(() => { descargaActual = null; pushDownloadStatus(); }, 6000);
+      } else if (state === 'cancelled') {
+        toastToLauncher('Descarga cancelada');
+        descargaActual = null;
+        pushDownloadStatus();
+      } else {
+        toastToLauncher('No se pudo descargar ' + path.basename(file));
+        descargaActual = null;
+        pushDownloadStatus();
+      }
+    });
+  });
+
+  // Permisos: las plataformas piden micrófono, cámara, geolocalización y
+  // notificaciones. Como todo corre dentro de METATRON (navegador interno),
+  // se conceden para que los sitios funcionen completos.
+  session.defaultSession.setPermissionCheckHandler(() => true);
+  session.defaultSession.setPermissionRequestHandler((wc, permission, callback) => callback(true));
+}
+
+// ── Buscar dentro de la página (Ctrl+F) ──────────────────────────────────────
+let findQuery = '';
+
+function openFind() {
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('find:open');
+}
+
+// findNext debe ir en true: con false Electron no siempre emite 'found-in-page'
+// y no se podría mostrar el contador de coincidencias.
+function runFindInPage(forward) {
+  const wc = activeWebContents();
+  if (!wc || !wc.findInPage) return;
+  if (!findQuery) { try { wc.stopFindInPage('clearSelection'); } catch (e) {} return; }
+  wc.findInPage(findQuery, { findNext: true, forward: forward !== false, matchCase: false });
+}
+
+function stopFind() {
+  const wc = activeWebContents();
+  if (wc && wc.stopFindInPage) { try { wc.stopFindInPage('clearSelection'); } catch (e) {} }
+  findQuery = '';
+}
+
+// Agrega la pestaña actual al cajón OSINT (favoritos), con Ctrl+D.
+function bookmarkActiveTab() {
+  const tab = activeTab();
+  if (!tab || tab.kind === 'tool') {
+    toastToLauncher('Abrí una web para agregarla al cajón OSINT');
+    return;
+  }
+  const url = tab.url;
+  if (!/^https?:\/\//i.test(url || '')) {
+    toastToLauncher('Esta pestaña todavía no tiene una dirección para guardar');
+    return;
+  }
+  const name = tab.pageTitle || hostOf(url);
+  const res = addCustomPage(name, url, '');
+  if (res && res.ok) {
+    toastToLauncher('Página agregada al cajón OSINT');
+    setDrawerMode('abrir');
+  } else {
+    toastToLauncher((res && res.error) || 'No se pudo agregar la página');
+  }
+}
+
+// Progreso de carga de la pestaña activa (barra fina arriba de la barra).
+function sendLoadProgress(p) {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  mainWindow.webContents.send('load-progress', Math.max(0, Math.min(1, Number(p) || 0)));
+}
+
 function createMain() {
   // Modo ventana: se recupera el tamaño y la posición guardados.
   const bounds = (!appConfig.fullscreen && appConfig.windowBounds)
@@ -1877,6 +2054,7 @@ app.whenReady().then(async () => {
   await initAdblock();
   registerNotesIpc();
   buildMenu();
+  setupDownloads();
   createSplash();
   createMain();
   startNewsFeed();
@@ -1952,6 +2130,25 @@ app.whenReady().then(async () => {
   ipcMain.on('open-notes', () => openNotes());
 
   ipcMain.handle('app:capture', () => takeScreenshot());
+
+  // Cajón OSINT: agregar la pestaña actual (Ctrl+D / botón de la barra).
+  ipcMain.on('bookmark:add', () => bookmarkActiveTab());
+
+  // Abre la carpeta de descargas de METATRON.
+  ipcMain.on('open-downloads', () => {
+    try {
+      fs.mkdirSync(downloadsDir(), { recursive: true });
+      shell.openPath(downloadsDir());
+    } catch (e) {}
+  });
+
+  // Buscar dentro de la página (Ctrl+F)
+  ipcMain.on('find:query', (event, payload) => {
+    findQuery = String(payload && payload.text || '');
+    runFindInPage(true);
+  });
+  ipcMain.on('find:step', (event, dir) => runFindInPage(Number(dir) >= 0));
+  ipcMain.on('find:close', () => stopFind());
 
   // ── Historial ──────────────────────────────────────────────────────────────
   ipcMain.handle('history:get', (event, filtro) => {

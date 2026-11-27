@@ -329,6 +329,17 @@
     transition: var(--transition);
   }
   .foot-btn:hover { color:var(--blue-2); border-color:var(--line-2); background:var(--bg-3); }
+  .dl-status { font-size:9px; letter-spacing:.08em; color:var(--yellow); }
+
+  /* Barra de progreso de carga (fina, arriba de la barra del navegador) */
+  #loadbar {
+    position:absolute; left:0; top:0; height:2px; z-index:30;
+    background:linear-gradient(90deg,var(--blue),var(--blue-2));
+    box-shadow:0 0 8px rgba(54,123,240,.6);
+    width:0; opacity:0; transition:width 160ms linear, opacity 300ms ease;
+    pointer-events:none;
+  }
+  #loadbar.on { opacity:1; }
 
   /* Aviso emergente */
   .toast {
@@ -340,12 +351,34 @@
     transition: opacity var(--transition), transform var(--transition);
   }
   .toast.show { opacity:1; transform:translateY(0); }
+
+  /* Buscar dentro de la página (Ctrl+F) */
+  .findbar {
+    position:fixed; top:88px; right:14px; z-index:60;
+    display:none; align-items:center; gap:6px;
+    padding:6px 9px; background:var(--bg-3); border:1px solid var(--blue);
+    box-shadow:0 8px 26px rgba(0,0,0,.65);
+  }
+  .findbar.open { display:flex; }
+  .findbar input {
+    width:210px; height:22px; background:var(--bg); border:1px solid var(--line);
+    color:var(--text); font-size:11px; padding:0 7px; outline:none;
+  }
+  .findbar input:focus { border-color:var(--blue-2); }
+  .findbar .fbot {
+    width:20px; height:20px; display:grid; place-items:center; cursor:pointer;
+    color:var(--text-2); border:1px solid var(--line); background:var(--bg-2); font-size:10px;
+    transition: var(--transition);
+  }
+  .findbar .fbot:hover { color:var(--blue-2); border-color:var(--blue); }
+  .findbar .fcount { font-size:9.5px; color:var(--text-3); min-width:34px; text-align:right; }
 </style>
 </head>
 <body>
 <div id="bg-grid" aria-hidden="true"></div>
 
 <div id="chrome">
+  <div id="loadbar"></div>
   <div class="tabbar">
     <div class="ident">
       <img class="logo" src="logo.jpg" alt="METATRON">
@@ -399,6 +432,9 @@
     <button class="tool-btn icon-only" id="capture-btn" title="Captura de pantalla (Ctrl+Shift+S)" aria-label="Captura">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V8a1 1 0 0 0 1-1h-3l-2.5-3Z"/><circle cx="12" cy="13" r="3.5"/></svg>
     </button>
+    <button class="tool-btn icon-only" id="bookmark-btn" title="Agregar esta página al cajón OSINT (Ctrl+D)" aria-label="Agregar al cajón">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z"/></svg>
+    </button>
     <button class="tool-btn icon-only" id="settings-btn" title="Configuración (Ctrl+,)" aria-label="Configuración">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
     </button>
@@ -449,12 +485,23 @@
   <span class="prompt">root@metatron:/opt/metatron</span>
   <span id="sysline">> iniciado</span>
   <span class="spacer"></span>
+  <button class="foot-btn" id="dl-btn" title="Carpeta de descargas de METATRON" style="display:none">↓ DESCARGAS</button>
+  <span class="dl-status" id="dl-status"></span>
   <button class="foot-btn" id="hist-btn" title="Historial de navegación (Ctrl+Shift+H)">HISTORIAL</button>
   <button class="foot-btn" id="conf-btn" title="Configuración (Ctrl+,)">CONFIG</button>
   <span class="net-status"><span class="status-dot" id="footer-dot"></span> <span id="nettext">comprobando conexión…</span></span>
 </footer>
 
 <div class="toast" id="toast"></div>
+
+<!-- Buscar dentro de la página (Ctrl+F) -->
+<div class="findbar" id="findbar">
+  <span class="fbot" id="find-prev" title="Anterior (Shift+F3)">↑</span>
+  <span class="fcount" id="find-count">0/0</span>
+  <span class="fbot" id="find-next" title="Siguiente (F3)">↓</span>
+  <input id="find-input" type="text" spellcheck="false" autocomplete="off" placeholder="buscar en la página">
+  <span class="fbot" id="find-close" title="Cerrar (Esc)">✕</span>
+</div>
 
 <script>
 const VERSION = 'v1.0.0';
@@ -799,6 +846,91 @@ document.getElementById('newtab').addEventListener('click', () => window.metatro
 document.getElementById('hist-btn').addEventListener('click', () => window.metatron.openHistory());
 document.getElementById('conf-btn').addEventListener('click', () => window.metatron.openSettings());
 document.getElementById('settings-btn').addEventListener('click', () => window.metatron.openSettings());
+// Agrega la pestaña actual al cajón OSINT (favoritos).
+// Ctrl+D lo toma el atajo global del proceso principal (before-input-event),
+// así no se ejecuta dos veces.
+document.getElementById('bookmark-btn').addEventListener('click', () => window.metatron.addBookmark());
+document.getElementById('dl-btn').addEventListener('click', () => window.metatron.openDownloads());
+
+/* ── Progreso de carga y descargas ────────────────────────────────────────── */
+const loadbar = document.getElementById('loadbar');
+let loadbarTimer = null;
+
+function mostrarProgreso(p) {
+  const pct = Math.round(Math.max(0, Math.min(1, Number(p) || 0)) * 100);
+  loadbar.style.width = pct + '%';
+  if (pct > 0 && pct < 100) {
+    loadbar.classList.add('on');
+    clearTimeout(loadbarTimer);
+    loadbarTimer = setTimeout(() => { loadbar.classList.remove('on'); loadbar.style.width = '0%'; }, 600);
+  } else if (pct >= 100) {
+    loadbar.classList.add('on');
+    clearTimeout(loadbarTimer);
+    loadbarTimer = setTimeout(() => { loadbar.classList.remove('on'); loadbar.style.width = '0%'; }, 500);
+  }
+}
+
+function bytesLabel(n) {
+  const v = Number(n) || 0;
+  if (v < 1024) return Math.round(v) + ' B';
+  if (v < 1024 * 1024) return (v / 1024).toFixed(0) + ' KB';
+  return (v / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function mostrarDescarga(d) {
+  const dl = document.getElementById('dl-status');
+  const boton = document.getElementById('dl-btn');
+  if (!d) { dl.textContent = ''; boton.style.display = 'none'; return; }
+  boton.style.display = '';
+  if (d.listo) {
+    dl.textContent = 'descarga completa · ' + d.nombre;
+    dl.style.color = 'var(--green)';
+    return;
+  }
+  const pct = d.total ? Math.round((d.recibidos / d.total) * 100) + '%' : bytesLabel(d.recibidos);
+  dl.textContent = '↓ ' + d.nombre + ' · ' + pct;
+  dl.style.color = 'var(--yellow)';
+}
+
+if (window.metatron.onLoadProgress) window.metatron.onLoadProgress(mostrarProgreso);
+if (window.metatron.onDownloadStatus) window.metatron.onDownloadStatus(mostrarDescarga);
+
+/* ── Buscar dentro de la página (Ctrl+F) ─────────────────────────────────── */
+const findbar = document.getElementById('findbar');
+const findInput = document.getElementById('find-input');
+const findCount = document.getElementById('find-count');
+let findTimer = null;
+
+function abrirFind() {
+  findbar.classList.add('open');
+  setTimeout(() => findInput.focus(), 30);
+}
+function cerrarFind() {
+  findbar.classList.remove('open');
+  findInput.value = '';
+  findCount.textContent = '0/0';
+  window.metatron.findClose();
+}
+function contarFind(r) {
+  const total = r && r.matches ? r.matches : 0;
+  const actual = r && typeof r.activeMatchOrdinal === 'number' ? r.activeMatchOrdinal + 1 : 0;
+  findCount.textContent = total ? (actual + '/' + total) : '0/0';
+}
+
+findInput.addEventListener('input', () => {
+  clearTimeout(findTimer);
+  findTimer = setTimeout(() => window.metatron.findQuery(findInput.value), 180);
+});
+findInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); window.metatron.findStep(e.shiftKey ? -1 : 1); }
+  if (e.key === 'Escape') { cerrarFind(); findInput.blur(); }
+});
+document.getElementById('find-next').addEventListener('click', () => window.metatron.findStep(1));
+document.getElementById('find-prev').addEventListener('click', () => window.metatron.findStep(-1));
+document.getElementById('find-close').addEventListener('click', cerrarFind);
+
+if (window.metatron.onFindOpen) window.metatron.onFindOpen(abrirFind);
+if (window.metatron.onFindResult) window.metatron.onFindResult(contarFind);
 document.getElementById('notes-btn').addEventListener('click', () => window.metatron.openNotes());
 document.getElementById('capture-btn').addEventListener('click', () => window.metatron.capture());
 navBack.addEventListener('click', () => window.metatron.back());

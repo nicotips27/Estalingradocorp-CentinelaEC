@@ -43,6 +43,19 @@ contextBridge.exposeInMainWorld('metatron', {
   onPages: (cb) => ipcRenderer.on('pages-update', (_e, pages) => cb(pages)),
   addPage: (name, url, desc) => ipcRenderer.invoke('pages:add', { name, url, desc }),
   removePage: (id) => ipcRenderer.invoke('pages:remove', id),
+  // Agrega la pestaña actual al cajón OSINT (Ctrl+D / botón de la barra).
+  addBookmark: () => ipcRenderer.send('bookmark:add'),
+  // Abre la carpeta de descargas de METATRON.
+  openDownloads: () => ipcRenderer.send('open-downloads'),
+  // Descarga en curso y progreso de carga de la pestaña.
+  onDownloadStatus: (cb) => ipcRenderer.on('download-status', (_e, d) => cb(d)),
+  onLoadProgress: (cb) => ipcRenderer.on('load-progress', (_e, p) => cb(p)),
+  // Buscar dentro de la página (Ctrl+F)
+  onFindOpen: (cb) => ipcRenderer.on('find:open', () => cb()),
+  onFindResult: (cb) => ipcRenderer.on('find:result', (_e, r) => cb(r)),
+  findQuery: (text) => ipcRenderer.send('find:query', { text }),
+  findStep: (dir) => ipcRenderer.send('find:step', dir),
+  findClose: () => ipcRenderer.send('find:close'),
   // background = true (Ctrl+clic o clic medio) abre la página sin cambiar de pestaña.
   openPage: (id, background) => ipcRenderer.send('pages:open', id, !!background),
   onDrawerToggle: (cb) => ipcRenderer.on('drawer:toggle', (_e, force) => cb(force)),

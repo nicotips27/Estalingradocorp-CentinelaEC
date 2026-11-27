@@ -136,6 +136,18 @@ Todas las páginas viven dentro de **una sola ventana**, como un navegador propi
 | Ctrl+R / Ctrl+Shift+R | Recargar / recargar sin caché |
 | Ctrl+1 … Ctrl+9 | Abrir la plataforma correspondiente en una pestaña |
 | Ctrl+N | Anotador (pestaña de herramienta) |
+- **Descargas**: cualquier enlace de descarga se baja a `Descargas\METATRON` (la carpeta se crea sola), con el nombre saneado, **progreso en el pie** de la barra (`nombre · %`), aviso al empezar y al terminar, notificación del sistema (clic para ver el archivo) y botón **↓ DESCARGAS** para abrir la carpeta.
+- **Favoritos**: **Ctrl+D** (o el botón de marcador de la barra) agrega la pestaña actual al **cajón OSINT** y lo abre; si la página ya está, te avisa.
+- **Buscar dentro de la página**: **Ctrl+F** abre una barra de búsqueda con contador de coincidencias (`n/total`); **F3 / Shift+F3** (o Enter) van a la siguiente y la anterior, **Esc** cierra.
+- **Permisos de los sitios**: micrófono, cámara, geolocalización y notificaciones se conceden (navegador interno), así las plataformas funcionan completas.
+- **Atajos universales de navegador**: **F5** recargar, **Ctrl+F5** recargar sin caché, **Alt+← / Alt+→** atrás y adelante, **Ctrl+P** imprimir, **Ctrl+D** marcador, **Ctrl+F** buscar.
+- **Barra de progreso de carga**: línea fina de 2 px arriba de la barra que avanza con la carga y se desvanece al terminar.
+| Ctrl+D | Agregar la pestaña actual al cajón OSINT |
+| Ctrl+F | Buscar texto dentro de la página |
+| F3 / Shift+F3 | Siguiente / anterior coincidencia |
+| F5 / Ctrl+F5 | Recargar / recargar sin caché |
+| Alt+← / Alt+→ | Atrás / adelante |
+| Ctrl+P | Imprimir la página |
 | Ctrl+Shift+H | Historial (botón del pie o de la barra) |
 | Ctrl+, | Configuración (botón de la barra) |
 | Ctrl+Shift+S | Captura de pantalla |
@@ -477,6 +489,7 @@ El instalador es un **programa de uso interno** que no está firmado digitalment
   - **Gestor de historial** como pestaña de herramienta (botón **HISTORIAL** del pie, menú **Herramientas** o Ctrl+Shift+H): visitas agrupadas por día (HOY / AYER / fecha) con favicon, título, dominio y hora; **buscador** (Ctrl+F) por título o dirección; clic abre en la pestaña actual, `+` o clic medio en una pestaña nueva, `×` borra una visita y **VACIAR** borra todo. Se guarda en `%APPDATA%\METATRON\historial.json` (hasta 3000 visitas) y se puede desactivar.
   - **Configuración** como pestaña de herramienta (botón **CONFIG** del pie, menú **Herramientas** o Ctrl+,) guardada en `%APPDATA%\METATRON\config.json`: **página de inicio** configurable (las pestañas que la tenían abierta se actualizan solas), **al abrir** (portada o restaurar las pestañas de la sesión anterior), **cajón OSINT al arrancar** (abierto o cerrado), **guardar historial** y **notificaciones del sistema**.
   - Las notas, el historial, las webs del cajón, la sesión y la configuración viven todos en `%APPDATA%\METATRON\`, fuera de lo que borra el desinstalador.
+- **27/11/2026: opciones basicas de navegador**: **descargas** (se guardan en Descargas\METATRON con progreso en el pie, aviso al terminar y notificacion), **favoritos con Ctrl+D** (o el boton de marcador de la barra) que agrega la pestana actual al cajon OSINT, **buscar dentro de la pagina con Ctrl+F** (barra con contador de coincidencias, F3/Shift+F3 y Enter), **permisos** de microfono/camara/geolocalizacion/notificaciones concedidos a los sitios, **atajos universales** (F5, Ctrl+F5, Alt+flechas, Ctrl+P, Ctrl+D, Ctrl+F, F3) y **barra de progreso de carga**.
 - **26/11/2026: pantalla completa / modo ventana y ENCRYPT que se guarda.**
   - **Pantalla completa** configurable: con el interruptor apagado, METATRON abre en **ventana normal**; con F11 o desde Configuración se cambia y el modo queda guardado. En modo ventana también se recuerda el **tamaño y la posición** de la ventana (`windowBounds` en `config.json`).
   - **El interruptor ENCRYPT queda activo al reabrir**: si activás *Encriptar la Intra-Net* (en la barra, el menú o Configuración), al volver a abrir METATRON sigue activo y la interfaz arranca con el estado `SYS.ENCRYPTION ACTIVE`.
