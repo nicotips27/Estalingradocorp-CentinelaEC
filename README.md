@@ -45,7 +45,7 @@ Características principales:
 
 ![Pantalla de inicio de METATRON](Imagenes/demostracion/inicio.png)
 
-Vista con el **cajón OSINT** abierto (la página de inicio, las 9 plataformas y las webs que agregaste): arranca cerrado y se abre con el botón **OSINT** o Ctrl+Shift+O. También se ven el teleprompter de última hora, el reloj, el estado de conexión, los accesos **Anotador** y **Captura**, y el interruptor **Encriptar la Intra-Net**, todo bajo la barra de pestañas y la barra de direcciones estilo terminal Kali.
+Vista con el **cajón OSINT** abierto (la página de inicio, las 9 plataformas y las webs que agregaste): arranca cerrado y se abre con el botón **OSINT** o Ctrl+Shift+O. También se ven el teleprompter de última hora, el reloj, el estado de conexión, el interruptor **Encriptar la Intra-Net** y los botones de sólo ícono (**Anotador**, **Captura**, **Configuración**), todo bajo la barra de pestañas y la barra de direcciones estilo terminal Kali.
 
 ### Navegador de pestañas
 
@@ -95,7 +95,8 @@ Splash con el logo de Estalingrado Corp y el texto *"Conectando a la Intra-net�
 - **Menú nativo** reorganizado en 4 secciones, sin las 9 plataformas (ahora viven como pestañas) para liberar espacio:
   - **METATRON**: Página de inicio (Ctrl+H), Nueva pestaña (Ctrl+T), Reabrir pestaña cerrada (Ctrl+Shift+T), Cajón OSINT (Ctrl+Shift+O), Cerrar pestaña (Ctrl+W), Pestaña siguiente/anterior (Ctrl+Tab / Ctrl+Shift+Tab), Salir.
   - **Ver**: Recargar (Ctrl+R), Recargar sin caché (Ctrl+Shift+R), Atrás/Adelante, Zoom, DevTools (F12), Pantalla completa (F11), carpeta de capturas.
-  - **Herramientas**: Anotador (Ctrl+N), Captura (Ctrl+Shift+S), carpeta de notas, Restaurar copia de notas, Encriptar la Intra-Net, Vaciar caché.
+  - **Herramientas**: Anotador (Ctrl+N), Historial (Ctrl+Shift+H), Configuración (Ctrl+,), Captura de pantalla (Ctrl+Shift+S), carpeta de notas, Restaurar copia de notas, Encriptar la Intra-Net, Vaciar caché.
+  - La barra de direcciones tiene el botón **OSINT** y, como **sólo íconos**, **Anotador**, **Captura** y **Configuración** (el tooltip dice para qué es cada uno). El pie tiene además **HISTORIAL** y **CONFIG**.
   - **Ayuda**: "Sobre el programa" (F1), accesos a las plataformas y a la página de inicio.
 - **Atajos de plataforma** **Ctrl+1 … Ctrl+9** registrados globalmente (`before-input-event`), así funcionan con cualquier pestaña activa.
 - **Pantalla de carga (splash)** con logo, título y texto *"Conectando a la Intra-net…"* con spinner circular.
@@ -135,6 +136,8 @@ Todas las páginas viven dentro de **una sola ventana**, como un navegador propi
 | Ctrl+R / Ctrl+Shift+R | Recargar / recargar sin caché |
 | Ctrl+1 … Ctrl+9 | Abrir la plataforma correspondiente en una pestaña |
 | Ctrl+N | Anotador (pestaña de herramienta) |
+| Ctrl+Shift+H | Historial (botón del pie o de la barra) |
+| Ctrl+, | Configuración (botón de la barra) |
 | Ctrl+Shift+S | Captura de pantalla |
 | F11 / F12 | Pantalla completa / DevTools |
 

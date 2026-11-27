@@ -275,6 +275,29 @@ Verificaciones (build empaquetado, dist\win-unpacked\METATRON.exe, via CDP):
   - Mismos pasos OK: arranque con 1 pestaña, + x2 -> 3, Ctrl+T -> 4, cerrar/reabrir,
     Ctrl+clic en segundo plano, URL completa y favicons reales
 
+27/11/2026 - BARRA: ANOTADOR Y CAPTURA SOLO ICONOS + BOTON DE AJUSTES
+--------------------------------------------------------------------
+Pedido del usuario: "haz que el boton anotador y capturea sean solo iconos y agrega el
+boton de ajustes".
+
+Cambios (solo home.html):
+  - notes-btn y capture-btn: se les quita el <span> con el texto; quedan como
+    .tool-btn.icon-only (33px de ancho, solo el SVG)
+  - Nuevo boton settings-btn (icono de engranaje) en la barra de direcciones, al lado de
+    captura, tambien solo icono; abre la pestana Configuracion (window.metatron.openSettings)
+  - CSS: .tool-btn.icon-only { padding:0 9px } y .tool-btn.icon-only svg { 13px }
+  - El pie sigue teniendo HISTORIAL y CONFIG (ahora hay dos accesos a Configuracion)
+  - El boton OSINT conserva su texto (es el acceso principal al cajon)
+
+Verificado (desarrollo, via CDP):
+  - Barra: nav-back/fwd/reload/home = 26px sin texto; osint-btn = 74px con "OSINT";
+    notes-btn, capture-btn y settings-btn = 33px, sin texto, con SVG y tooltip
+    ("Anotador (Ctrl+N)", "Captura de pantalla (Ctrl+Shift+S)", "Configuracion (Ctrl+,)")
+  - Los tres botones funcionan: notas.html, captura (guarda la imagen) y settings.html
+  - Captura real de la barra: webs a pantalla completa con los tres iconos a la derecha
+  - Instalador regenerado con npm run dist: METATRON Setup 1.0.0.exe (79.107.515 bytes,
+    27/11/2026 01:2x, SHA256 F8418196E134E280753E122348BD9A9C8E54EF39A6B841DE26933D5EEC7218EF)
+
 27/11/2026 - BUG: ENCRYPT ABRIA EL CAJON OSINT
 ---------------------------------------------
 Reporte del usuario: "por que al activa y desactivar el encrip se abre el cajon osint?".
