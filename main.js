@@ -11,6 +11,14 @@ app.setAppUserModelId('com.metatron.beta');
 // User-Agent de Chrome real: evita que Cloudflare/sitios bloqueen a Electron.
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 
+// Un error en el proceso principal NUNCA debe mostrar el cuadro feo de
+// "A JavaScript error occurred in the main process": se avisa dentro de la app
+// y la app sigue andando (si se muestra ese cuadro, la app queda trabada).
+process.on('uncaughtException', (err) => {
+  console.error('Error no capturado en el proceso principal:', err);
+  try { toastToLauncher('Ocurrió un error inesperado'); } catch (e) {}
+});
+
 const SITES = [
   { name: 'EC Terminal Data',  url: 'https://nicotips27.github.io/Estalingrado-corp-Terminal-data/', shortcut: 'CmdOrCtrl+1', img: 'logo.jpg',               desc: 'Mercados, divisas, materias primas.' },
   { name: 'EC NEWS',            url: 'https://nicotips27.github.io/ECnews/',                      shortcut: 'CmdOrCtrl+2', img: 'img-ecnews.jpg',         desc: 'Prensa y agencias globales.' },
@@ -244,7 +252,7 @@ function currentSiteIndex() {
 }
 
 function navFlags(tab) {
-  const wc = tab && tab.view && !tab.view.webContents.isDestroyed() ? tab.view.webContents : null;
+  const wc = tab && vistaViva(tab.view) ? tab.view.webContents : null;
   let back = false;
   let forward = false;
   if (wc) {
@@ -255,21 +263,29 @@ function navFlags(tab) {
 
 function activeWebContents() {
   const tab = activeTab();
-  if (tab && tab.view && !tab.view.webContents.isDestroyed()) return tab.view.webContents;
+  if (tab && vistaViva(tab.view)) return tab.view.webContents;
   return mainWindow && !mainWindow.isDestroyed() ? mainWindow.webContents : null;
 }
 
 function destroyView(view) {
   if (!view) return;
   try { mainWindow && mainWindow.contentView.removeChildView(view); } catch (e) {}
-  try { view.webContents.close(); } catch (e) {}
+  try { if (view.webContents) view.webContents.close(); } catch (e) {}
+}
+
+// ¿La vista tiene un webContents utilizable? Cuando se cierra una pestaña de
+// herramienta (la ✕) su webContents se destruye y la vista ya no sirve: hay que
+// comprobar las dos cosas antes de crear una nueva. Si no, revienta el proceso
+// principal y los Ajustes / Historial / Anotador dejan de abrirse.
+function vistaViva(view) {
+  return !!(view && view.webContents && !view.webContents.isDestroyed());
 }
 
 // Desengancha todas las vistas sin cerrarlas (conservan su estado).
 function detachViews() {
   if (!mainWindow || mainWindow.isDestroyed()) return;
   for (const t of tabs) {
-    if (t.view && !t.view.webContents.isDestroyed()) {
+    if (vistaViva(t.view)) {
       try { mainWindow.contentView.removeChildView(t.view); } catch (e) {}
     }
   }
@@ -311,7 +327,7 @@ function updateWindowTitle() {
 
 function layoutViews() {
   const tab = activeTab();
-  if (tab && tab.view && !tab.view.webContents.isDestroyed()) tab.view.setBounds(pageBounds());
+  if (tab && vistaViva(tab.view)) tab.view.setBounds(pageBounds());
 }
 
 function activateTab(id) {
@@ -320,7 +336,7 @@ function activateTab(id) {
   detachViews();
   activeTabId = tab ? tab.id : null;
 
-  if (tab && tab.view && !tab.view.webContents.isDestroyed()) {
+  if (vistaViva(tab.view)) {
     mainWindow.contentView.addChildView(tab.view);
     tab.view.setBounds(pageBounds());
     tab.view.webContents.focus();
@@ -466,7 +482,7 @@ function applyConfig(cfg, avisar) {
         t.baseUrl = cfg.homePage;
         t.url = cfg.homePage;
         t.title = HOME_PAGE.name;
-        if (t.view && !t.view.webContents.isDestroyed()) {
+        if (vistaViva(t.view)) {
           try { t.view.webContents.loadURL(cfg.homePage); } catch (e) {}
         }
       }
@@ -516,10 +532,28 @@ function applyEncryptionState() {
 // Recuerda el tamaño y la posición de la ventana (modo ventana).
 function saveWindowBounds() {
   if (!mainWindow || mainWindow.isDestroyed() || mainWindow.isFullScreen()) return;
+  // Minimizada, getBounds() devuelve -32000,-32000: si se guardara, la app
+  // arrancaría fuera de la pantalla y no se vería nada.
+  if (mainWindow.isMinimized()) return;
   try {
-    const b = mainWindow.getBounds();
-    setConfig({ windowBounds: { x: b.x, y: b.y, width: b.width, height: b.height } }, true);
+    const b = boundsVisibles(mainWindow.getBounds());
+    if (b) setConfig({ windowBounds: b }, true);
   } catch (e) {}
+}
+
+// Asegura que el rectángulo de la ventana quede dentro de una pantalla visible
+// (si se cambió de monitor o la ventana quedó fuera, se la vuelve a meter).
+function boundsVisibles(b) {
+  if (!b) return null;
+  const width = Math.max(800, Math.min(4000, Math.round(b.width)));
+  const height = Math.max(600, Math.min(3000, Math.round(b.height)));
+  let x = Math.round(b.x), y = Math.round(b.y);
+  let area;
+  try { area = screen.getDisplayMatching({ x, y, width, height }).workArea; }
+  catch (e) { area = screen.getPrimaryDisplay().workArea; }
+  x = Math.max(area.x, Math.min(x, area.x + area.width - Math.min(width, area.width)));
+  y = Math.max(area.y, Math.min(y, area.y + area.height - Math.min(height, area.height)));
+  return { x, y, width, height };
 }
 
 function notify(mensaje) {
@@ -851,7 +885,7 @@ function restoreNotesBackup() {
   if (restored) {
     toastToLauncher('Copia restaurada · ' + restored.notes.length + ' notas');
     const tab = notesTab();
-    if (tab && tab.view && !tab.view.webContents.isDestroyed()) tab.view.webContents.reload();
+    if (tab && vistaViva(tab.view)) tab.view.webContents.reload();
   } else {
     toastToLauncher('No hay copias de seguridad de notas');
   }
@@ -1622,7 +1656,7 @@ function openSiteTab(siteIndex, background) {
 }
 
 function createNotesTab() {
-  if (!notesView || notesView.webContents.isDestroyed()) {
+  if (!vistaViva(notesView)) {
     notesView = new WebContentsView({
       webPreferences: {
         preload: path.join(__dirname, 'notes-preload.js'),
@@ -1653,14 +1687,20 @@ function createNotesTab() {
 
 function openNotesTab() {
   if (!mainWindow || mainWindow.isDestroyed()) return null;
-  const existing = notesTab();
-  if (existing) {
-    activateTab(existing.id);
-    return existing;
+  try {
+    const existing = notesTab();
+    if (existing) {
+      activateTab(existing.id);
+      return existing;
+    }
+    const tab = createNotesTab();
+    activateTab(tab.id);
+    return tab;
+  } catch (e) {
+    console.error('No se pudo abrir el Anotador:', e);
+    toastToLauncher('No se pudo abrir el anotador');
+    return null;
   }
-  const tab = createNotesTab();
-  activateTab(tab.id);
-  return tab;
 }
 
 // ── Historial y Configuración (pestañas de herramienta) ──────────────────────
@@ -1682,7 +1722,7 @@ function toolTab(tool, view, titulo, urlInterna) {
 }
 
 function createHistoryTab() {
-  if (!historyView || historyView.webContents.isDestroyed()) {
+  if (!vistaViva(historyView)) {
     historyView = new WebContentsView({
       webPreferences: {
         preload: path.join(__dirname, 'history-preload.js'),
@@ -1699,15 +1739,21 @@ function createHistoryTab() {
 
 function openHistoryTab() {
   if (!mainWindow || mainWindow.isDestroyed()) return null;
-  const existing = tabs.find(t => t.kind === 'tool' && t.tool === 'history');
-  if (existing) return activateTab(existing.id);
-  const tab = createHistoryTab();
-  activateTab(tab.id);
-  return tab;
+  try {
+    const existing = tabs.find(t => t.kind === 'tool' && t.tool === 'history');
+    if (existing) return activateTab(existing.id);
+    const tab = createHistoryTab();
+    activateTab(tab.id);
+    return tab;
+  } catch (e) {
+    console.error('No se pudo abrir el Historial:', e);
+    toastToLauncher('No se pudo abrir el historial');
+    return null;
+  }
 }
 
 function createSettingsTab() {
-  if (!settingsView || settingsView.webContents.isDestroyed()) {
+  if (!vistaViva(settingsView)) {
     settingsView = new WebContentsView({
       webPreferences: {
         preload: path.join(__dirname, 'settings-preload.js'),
@@ -1724,11 +1770,17 @@ function createSettingsTab() {
 
 function openSettingsTab() {
   if (!mainWindow || mainWindow.isDestroyed()) return null;
-  const existing = tabs.find(t => t.kind === 'tool' && t.tool === 'settings');
-  if (existing) return activateTab(existing.id);
-  const tab = createSettingsTab();
-  activateTab(tab.id);
-  return tab;
+  try {
+    const existing = tabs.find(t => t.kind === 'tool' && t.tool === 'settings');
+    if (existing) return activateTab(existing.id);
+    const tab = createSettingsTab();
+    activateTab(tab.id);
+    return tab;
+  } catch (e) {
+    console.error('No se pudo abrir la Configuración:', e);
+    toastToLauncher('No se pudo abrir la configuración');
+    return null;
+  }
 }
 
 async function closeTab(id) {
@@ -1745,11 +1797,17 @@ async function closeTab(id) {
   if (wasActive) activeTabId = null;
 
   // El anotador se vacía antes de destruirse para no perder el último texto tipeado.
-  if (tab.kind === 'tool' && tab.tool === 'notes' && tab.view && !tab.view.webContents.isDestroyed()) {
+  if (tab.kind === 'tool' && tab.tool === 'notes' && vistaViva(tab.view)) {
     try {
       await tab.view.webContents.executeJavaScript('window.__anotadorFlush && window.__anotadorFlush()');
     } catch (e) {}
-    if (notesView === tab.view) notesView = null;
+  }
+  // La vista cerrada ya no sirve: se libera su referencia para que la próxima
+  // apertura cree una nueva (si no, reaparece la vieja y revienta todo).
+  if (tab.kind === 'tool') {
+    if (tab.tool === 'notes' && notesView === tab.view) notesView = null;
+    else if (tab.tool === 'history' && historyView === tab.view) historyView = null;
+    else if (tab.tool === 'settings' && settingsView === tab.view) settingsView = null;
   }
   destroyView(tab.view);
 
@@ -1797,7 +1855,7 @@ function navForward() {
 async function navReload(bypassCache) {
   const tab = activeTab();
   // El anotador se guarda antes de recargar para no perder lo último tipeado.
-  if (tab && tab.kind === 'tool' && tab.tool === 'notes' && tab.view && !tab.view.webContents.isDestroyed()) {
+  if (tab && tab.kind === 'tool' && tab.tool === 'notes' && vistaViva(tab.view)) {
     try {
       await tab.view.webContents.executeJavaScript('window.__anotadorFlush && window.__anotadorFlush()');
     } catch (e) {}
@@ -1832,7 +1890,7 @@ function navigateToUrl(raw) {
   }
 
   const tab = activeTab();
-  const wc = tab && tab.kind !== 'tool' && tab.view && !tab.view.webContents.isDestroyed()
+  const wc = tab && tab.kind !== 'tool' && vistaViva(tab.view)
     ? tab.view.webContents : null;
   if (wc) {
     wc.loadURL(target);
@@ -1991,9 +2049,10 @@ function sendLoadProgress(p) {
 }
 
 function createMain() {
-  // Modo ventana: se recupera el tamaño y la posición guardados.
+  // Modo ventana: se recupera el tamaño y la posición guardados (si quedaron
+  // fuera de la pantalla, se corrigen para que la ventana siempre se vea).
   const bounds = (!appConfig.fullscreen && appConfig.windowBounds)
-    ? appConfig.windowBounds : null;
+    ? boundsVisibles(appConfig.windowBounds) : null;
   mainWindow = new BrowserWindow({
     width: bounds ? Math.round(bounds.width) : 1280,
     height: bounds ? Math.round(bounds.height) : 800,

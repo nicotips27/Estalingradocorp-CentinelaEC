@@ -77,6 +77,13 @@
 
   .rutas{font-size:10px;color:var(--text-3);line-height:1.7;word-break:break-all}
   .rutas b{color:var(--text-2);font-weight:500}
+  /* Los botones de acción quedan siempre abajo y a la vista: en modo ventana
+     sobra poco alto y si no, hay que scrollear para encontrar GUARDAR. */
+  .fila-acciones{
+    position:sticky; bottom:0; z-index:5; margin-top:4px; padding:9px 0 4px;
+    background:linear-gradient(180deg,rgba(13,16,20,.86),var(--bg-2) 45%);
+    border-top:1px solid var(--line);
+  }
 
   .aviso{
     margin-top:4px;font-size:10px;color:var(--green);min-height:14px;letter-spacing:.04em;
@@ -176,7 +183,7 @@
     </div>
   </div>
 
-  <div class="fila" style="border:none;gap:10px">
+  <div class="fila fila-acciones" style="border:none;gap:10px">
     <button class="btn ok" id="guardar">GUARDAR</button>
     <button class="btn" id="defecto">VALORES POR DEFECTO</button>
     <span class="sp" style="flex:1"></span>

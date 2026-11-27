@@ -275,6 +275,60 @@ Verificaciones (build empaquetado, dist\win-unpacked\METATRON.exe, via CDP):
   - Mismos pasos OK: arranque con 1 pestaña, + x2 -> 3, Ctrl+T -> 4, cerrar/reabrir,
     Ctrl+clic en segundo plano, URL completa y favicons reales
 
+27/11/2026 - FIX: NO SE PODIAN ABRIR LOS AJUSTES (NI HISTORIAL/ANOTADOR)
+--------------------------------------------------------------------
+Reporte del usuario: "no puedo abrir los ajustes cuando esta en modo ventana".
+
+Causa raiz (la encontro el propio cuadro de error de Electron, que dice la linea
+exacta): al cerrar la pestaña de Ajustes con la X, se destruia su webContents y la
+vista quedaba INUTILIZABLE. Al volver a abrir los Ajustes, el codigo hacia
+"settingsView.webContents.isDestroyed()" y ahi Electron lanzaba:
+
+  TypeError: Cannot read properties of undefined (reading 'isDestroyed')
+      at createSettingsTab (main.js:1710)
+
+Esa excepcion SALIA por el IPC del boton CONFIG / del engranaje / de Ctrl+, asi que
+no se veia NADA de nada: el proceso principal ademas mostraba el cuadro
+"A JavaScript error occurred in the main process" y la app quedaba trabada.
+El modo ventana solo era la forma de llegar al problema (el usuario cerraba la
+pestana de ajustes despues de cambiar el modo y ahi ya no podia reabrirla).
+
+Correcciones (main.js):
+  - vistaViva(view): helper que comprueba que la vista exista, que tenga
+    webContents y que no este destruida. Reemplaza TODOS los
+    "view.webContents.isDestroyed()" que asumian que webContents siempre existe
+    (eran 12 lugares, y todos podian romper el proceso principal)
+  - destroyView(): ya no revienta si view.webContents es undefined
+  - closeTab(): al cerrar una pestana de herramienta se LIBERA su referencia
+    (notesView / historyView / settingsView = null), asi la proxima apertura crea
+    una vista nueva en vez de reusar la destruida
+  - openSettingsTab / openHistoryTab / openNotesTab: envueltas en try/catch: si
+    algo falla se avisa con un toast dentro de la app en lugar de trabarse
+  - uncaughtException global: NUNCA mas se muestra el cuadro feo de "A JavaScript
+    error occurred in the main process"; se registra y se avisa en la app
+  - saveWindowBounds(): no guarda nada si la ventana esta MINIMIZADA (en Windows
+    getBounds() de una ventana minimizada devuelve -32000,-32000 y la app arrancaria
+    invisible) y boundsVisibles() corrige el rectangulo para que la ventana siempre
+    quede dentro de una pantalla visible al reabrir en modo ventana
+
+Mejora de usabilidad (settings.html):
+  - la fila de GUARDAR / VALORES POR DEFECTO ahora es position:sticky: en modo
+    ventana sobra poco alto y habia que scrollear para encontrar el boton
+
+Verificado (desarrollo, via CDP, con clics reales):
+  - Ajustes: 3 ciclos seguidos de abrir / cerrar / reabrir -> los 3 abrieron
+  - Historial y Anotador: abren correctamente
+  - Apagar "Pantalla completa" + GUARDAR -> la ventana pasa a modo ventana
+    (1264x655), avisa "configuracion guardada" y lo guarda en config.json
+  - Cerrar los Ajustes y reabrirlos EN MODO VENTANA -> abren (el bug del usuario)
+  - Reiniciar la app en modo ventana -> la ventana se ve (bounds corregidos si
+    hiciera falta) y los Ajustes abren de entrada
+  - La vista de Ajustes mide 1264x576 (justo el area de la ventana) y renderiza
+  - Cero errores en el log del proceso principal
+  - Instalador regenerado con npm run dist: METATRON Setup 1.0.0.exe
+    (79.111.727 bytes, 27/11/2026, SHA256
+    FE0918281B5BA423C50610A90636D0EE7B7E9E0DCB0B5D2431AD7CD490DFDCE7)
+
 27/11/2026 - FIX: FAVICONS DE LAS PESTANAS SE VEIAN MAL
 ------------------------------------------------------
 Reporte del usuario: "abri facebook en una pestaña y su logo sale mal al igual que de otras
