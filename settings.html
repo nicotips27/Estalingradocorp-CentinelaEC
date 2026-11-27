@@ -106,7 +106,7 @@
   <span class="tag">CONFIGURACIÓN</span>
   <span class="sub">se guarda automáticamente en %APPDATA%\METATRON</span>
   <span class="sp"></span>
-  <button class="btn" id="cerrar" title="Cerrar la pestaña">✕</button>
+  <span class="sub">para salir, tocá de nuevo CONFIG o el engranaje</span>
 </header>
 
 <main>
@@ -262,7 +262,6 @@ document.getElementById('defecto').addEventListener('click', async () => {
 });
 
 document.getElementById('abrir').addEventListener('click', () => window.config.abrirCarpeta());
-document.getElementById('cerrar').addEventListener('click', () => window.config.cerrar());
 
 (async () => {
   const cfg = await window.config.get();

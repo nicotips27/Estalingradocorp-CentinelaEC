@@ -275,6 +275,34 @@ Verificaciones (build empaquetado, dist\win-unpacked\METATRON.exe, via CDP):
   - Mismos pasos OK: arranque con 1 pestaña, + x2 -> 3, Ctrl+T -> 4, cerrar/reabrir,
     Ctrl+clic en segundo plano, URL completa y favicons reales
 
+27/11/2026 - UI: SIN ✕ EN CONFIGURACIÓN, SE CIERRA CON EL MISMO BOTÓN
+----------------------------------------------------------------
+Pedido del usuario: "quitale la x de cerrar al menu de configuraciones y que este
+se cierre al hacer click en el mismo boton de configuraciones".
+
+Cambios:
+  - settings.html: se saca el boton ✕ del encabezado (id="cerrar") y su listener.
+    En su lugar queda una pista en el encabezado: "para salir, tocá de nuevo
+    CONFIG o el engranaje"
+  - main.js openSettingsTab(): ahora es un interruptor. Si la pestaña de Ajustes
+    ya está abierta Y es la pestaña activa, el mismo botón la CIERRA; si está
+    abierta pero no es la activa, simplemente la activa (como antes)
+  - La pestaña de Ajustes se puede seguir cerrando con la ✕ de la barra de
+    pestañas, con Ctrl+W, o con el nuevo interruptor
+
+Verificado sobre la app INSTALADA (no la de desarrollo), con clics reales:
+  - Ajustes abren al tocar el engranaje
+  - el boton ✕ del encabezado: eliminado; se ve la pista nueva
+  - tocar el engranaje de nuevo: los Ajustes se CIERRAN
+  - segundo ciclo abrir/cerrar con el engranaje: OK
+  - con el boton CONFIG del pie: abre y cierra (toggle) OK
+  - cierre con la ✕ de la barra de pestañas: OK
+  - datos del usuario en %APPDATA%\METATRON intactos
+
+Instalador regenerado (npm run dist) y app local ACTUALIZADA en
+%LOCALAPPDATA%\Programs\METATRON (METATRON Setup 1.0.0.exe, 79.111.925 bytes,
+27/11/2026, SHA256 E82D76ECD1BB2F26EDC0896611B8FA2403F11EC8B63A4519682A8C17AC50E5EA)
+
 27/11/2026 - FIX: NO SE PODIAN ABRIR LOS AJUSTES (NI HISTORIAL/ANOTADOR)
 --------------------------------------------------------------------
 Reporte del usuario: "no puedo abrir los ajustes cuando esta en modo ventana".

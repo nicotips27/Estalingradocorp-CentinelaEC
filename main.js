@@ -1768,11 +1768,16 @@ function createSettingsTab() {
   return toolTab('settings', settingsView, 'Configuración', 'metatron://config');
 }
 
+// Abre la pestaña de Configuración; si ya está abierta, el mismo botón la cierra
+// (no hace falta la ✕ del encabezado: se sale tocando de nuevo CONFIG o el engranaje).
 function openSettingsTab() {
   if (!mainWindow || mainWindow.isDestroyed()) return null;
   try {
     const existing = tabs.find(t => t.kind === 'tool' && t.tool === 'settings');
-    if (existing) return activateTab(existing.id);
+    if (existing) {
+      if (existing.id === activeTabId) return closeTab(existing.id);
+      return activateTab(existing.id);
+    }
     const tab = createSettingsTab();
     activateTab(tab.id);
     return tab;
