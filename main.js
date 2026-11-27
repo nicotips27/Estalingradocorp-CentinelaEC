@@ -37,6 +37,8 @@ const SPLASH_MIN_MS = 1800;
 let mainWindow = null;
 let splashWindow = null;
 let notesView = null;      // vista del anotador (se usa como pestaña de herramienta)
+let historyView = null;    // vista del historial
+let settingsView = null;   // vista de configuración
 
 // ── Navegador con pestañas ──────────────────────────────────────────────────
 // Cada plataforma se abre como una pestaña dentro de la misma ventana.
@@ -380,6 +382,174 @@ function reopenLastClosed() {
   return tab;
 }
 
+// ── Configuración de la app (se guarda en disco) ─────────────────────────────
+const CONFIG_DEFAULTS = {
+  homePage: HOME_PAGE.url,   // página de inicio (la que abre Ctrl+H / el botón Inicio)
+  openOnStart: 'home',       // 'home' = siempre la portada · 'session' = restaurar pestañas
+  drawerOnStart: false,      // el cajón OSINT arranca cerrado
+  historyEnabled: true,      // guardar el historial de navegación
+  notifications: true        // avisos del sistema (capturas, etc.)
+};
+
+function configFilePath() { return path.join(dataDir(), 'config.json'); }
+
+function readConfig() {
+  const cfg = { ...CONFIG_DEFAULTS };
+  try {
+    const data = JSON.parse(fs.readFileSync(configFilePath(), 'utf8'));
+    if (data && typeof data === 'object') {
+      for (const k of Object.keys(CONFIG_DEFAULTS)) {
+        if (k in data && data[k] !== undefined && data[k] !== null) cfg[k] = data[k];
+      }
+    }
+  } catch (e) {}
+  return sanitizeConfig(cfg);
+}
+
+function sanitizeConfig(input) {
+  return {
+    homePage: normalizeWebUrl(input && input.homePage) || CONFIG_DEFAULTS.homePage,
+    openOnStart: input && input.openOnStart === 'session' ? 'session' : 'home',
+    drawerOnStart: !!(input && input.drawerOnStart),
+    historyEnabled: !!(input && input.historyEnabled),
+    notifications: !!(input && input.notifications)
+  };
+}
+
+function writeConfig(cfg) {
+  try {
+    fs.mkdirSync(dataDir(), { recursive: true });
+    const tmp = configFilePath() + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify(cfg, null, 2), 'utf8');
+    fs.renameSync(tmp, configFilePath());
+    return true;
+  } catch (e) { return false; }
+}
+
+let appConfig = readConfig();
+
+// Aplica la configuración vigente (se llama al arrancar y al guardar cambios).
+function applyConfig(cfg, avisar) {
+  const homeAntes = HOME_PAGE.url;
+  appConfig = cfg;
+  // La página de inicio configurable se refleja en el cajón OSINT y en Ctrl+H.
+  HOME_PAGE.url = cfg.homePage;
+  HOME_PAGE.name = hostOf(cfg.homePage) || HOME_PAGE.name;
+  pushPagesState();
+  // Si cambió la portada, las pestañas que la tenían abierta se actualizan.
+  if (homeAntes !== cfg.homePage) {
+    for (const t of tabs) {
+      if (t.kind === 'page' && t.pageId === HOME_PAGE.id) {
+        t.baseUrl = cfg.homePage;
+        t.url = cfg.homePage;
+        t.title = HOME_PAGE.name;
+        if (t.view && !t.view.webContents.isDestroyed()) {
+          try { t.view.webContents.loadURL(cfg.homePage); } catch (e) {}
+        }
+      }
+    }
+    pushTabsState();
+  }
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('drawer:toggle', cfg.drawerOnStart);
+  }
+  if (avisar) toastToLauncher('Configuración guardada');
+}
+
+function setConfig(patch) {
+  const merged = { ...readConfig() };
+  if (patch && typeof patch === 'object') {
+    for (const k of Object.keys(CONFIG_DEFAULTS)) {
+      if (k in patch) merged[k] = patch[k];
+    }
+  }
+  const cfg = sanitizeConfig(merged);
+  const ok = writeConfig(cfg);
+  if (ok) applyConfig(cfg, true);
+  return { ok, config: cfg };
+}
+
+function notify(mensaje) {
+  if (!appConfig.notifications) return null;
+  try {
+    return new Notification({ title: 'METATRON', body: mensaje }).show();
+  } catch (e) { return null; }
+}
+
+// ── Historial de navegación ──────────────────────────────────────────────────
+const HISTORY_MAX = 3000;
+let historyCache = null;
+
+function historyFilePath() { return path.join(dataDir(), 'historial.json'); }
+
+function readHistory() {
+  if (historyCache) return historyCache;
+  let list = [];
+  try {
+    const data = JSON.parse(fs.readFileSync(historyFilePath(), 'utf8'));
+    list = Array.isArray(data.items) ? data.items : (Array.isArray(data) ? data : []);
+  } catch (e) { list = []; }
+  historyCache = list.filter(h => h && typeof h.url === 'string');
+  return historyCache;
+}
+
+function writeHistory(list) {
+  historyCache = list;
+  try {
+    fs.mkdirSync(dataDir(), { recursive: true });
+    const tmp = historyFilePath() + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify({ items: list }, null, 2), 'utf8');
+    fs.renameSync(tmp, historyFilePath());
+    return true;
+  } catch (e) { return false; }
+}
+
+// Registra una visita (sin duplicar la visita anterior a la misma URL).
+function addHistoryEntry(url, title, fav) {
+  if (!appConfig.historyEnabled) return null;
+  if (!/^https?:\/\//i.test(String(url || ''))) return null;
+  const list = readHistory();
+  if (list[0] && list[0].url === url && Date.now() - (list[0].ts || 0) < 30000) {
+    if (title && list[0].title !== title) { list[0].title = String(title).slice(0, 200); writeHistory(list); }
+    return list[0];
+  }
+  const entry = {
+    id: 'h-' + crypto.randomUUID().slice(0, 12),
+    url: String(url).slice(0, 2048),
+    title: String(title || hostOf(url) || 'Sin título').slice(0, 200),
+    fav: String(fav || '').slice(0, 2048),
+    ts: Date.now()
+  };
+  list.unshift(entry);
+  writeHistory(list.slice(0, HISTORY_MAX));
+  return entry;
+}
+
+// Cuando el título real llega tarde, se completa la última visita a esa URL.
+function refreshHistoryTitle(url, title) {
+  const list = readHistory();
+  for (const item of list) {
+    if (item.url === url && item.title && (item.title === hostOf(url) || item.title === 'Sin título')) {
+      item.title = String(title).slice(0, 200);
+      writeHistory(list);
+      return;
+    }
+  }
+}
+
+function removeHistoryEntry(id) {
+  const list = readHistory();
+  const next = list.filter(h => h.id !== String(id || ''));
+  if (next.length === list.length) return { ok: false, error: 'Entrada no encontrada' };
+  writeHistory(next);
+  return { ok: true };
+}
+
+function clearHistory() {
+  writeHistory([]);
+  return { ok: true };
+}
+
 // ── Sesión: las pestañas abiertas se recuperan al volver a abrir la app ───────
 const SESSION_MAX = 12;
 
@@ -530,6 +700,8 @@ function buildMenu() {
       label: 'Herramientas',
       submenu: [
         { label: 'Anotador', accelerator: 'CmdOrCtrl+N', click: () => openNotesTab() },
+        { label: 'Historial', accelerator: 'CmdOrCtrl+Shift+H', click: () => openHistoryTab() },
+        { label: 'Configuración', accelerator: 'CmdOrCtrl+,', click: () => openSettingsTab() },
         { label: 'Captura de pantalla', accelerator: 'CmdOrCtrl+Shift+S', click: () => takeScreenshot() },
         { type: 'separator' },
         {
@@ -1031,7 +1203,7 @@ async function takeScreenshot() {
     clipboard.writeImage(image);
 
     try {
-      if (Notification.isSupported()) {
+      if (appConfig.notifications && Notification.isSupported()) {
         const toast = new Notification({
           title: 'Captura guardada',
           body: path.basename(file) + ' · copiada al portapapeles',
@@ -1242,6 +1414,7 @@ function createWebTab(url, opts = {}) {
   wc.on('did-stop-loading', () => { tab.loading = false; pushTabsState(); buildMenu(); });
   wc.on('page-title-updated', (event, title) => {
     tab.pageTitle = title || fallbackTitle;
+    refreshHistoryTitle(tab.url, tab.pageTitle);
     pushTabsState();
   });
   // Favicon real del sitio: se muestra en la pestaña (como en un navegador).
@@ -1265,6 +1438,7 @@ function createWebTab(url, opts = {}) {
       tab.img = '';
     }
     if (tab.kind === 'web') tab.title = hostOf(navUrl) || tab.title;
+    addHistoryEntry(tab.url, tab.pageTitle, tab.fav);
     pushTabsState();
   });
   wc.on('did-navigate-in-page', (event, navUrl, isMainFrame) => {
@@ -1364,6 +1538,74 @@ function openNotesTab() {
     return existing;
   }
   const tab = createNotesTab();
+  activateTab(tab.id);
+  return tab;
+}
+
+// ── Historial y Configuración (pestañas de herramienta) ──────────────────────
+function toolTab(tool, view, titulo, urlInterna) {
+  const tab = {
+    id: 'tab-' + (++tabSeq),
+    kind: 'tool',
+    tool,
+    siteIndex: -1,
+    pageId: '',
+    img: '',
+    title: titulo,
+    url: urlInterna,
+    view,
+    loading: false
+  };
+  tabs.push(tab);
+  return tab;
+}
+
+function createHistoryTab() {
+  if (!historyView || historyView.webContents.isDestroyed()) {
+    historyView = new WebContentsView({
+      webPreferences: {
+        preload: path.join(__dirname, 'history-preload.js'),
+        contextIsolation: true,
+        nodeIntegration: false,
+        backgroundThrottling: false
+      }
+    });
+    historyView.webContents.loadFile(path.join(__dirname, 'history.html'));
+    attachModuleShortcuts(historyView.webContents);
+  }
+  return toolTab('history', historyView, 'Historial', 'metatron://historial');
+}
+
+function openHistoryTab() {
+  if (!mainWindow || mainWindow.isDestroyed()) return null;
+  const existing = tabs.find(t => t.kind === 'tool' && t.tool === 'history');
+  if (existing) return activateTab(existing.id);
+  const tab = createHistoryTab();
+  activateTab(tab.id);
+  return tab;
+}
+
+function createSettingsTab() {
+  if (!settingsView || settingsView.webContents.isDestroyed()) {
+    settingsView = new WebContentsView({
+      webPreferences: {
+        preload: path.join(__dirname, 'settings-preload.js'),
+        contextIsolation: true,
+        nodeIntegration: false,
+        backgroundThrottling: false
+      }
+    });
+    settingsView.webContents.loadFile(path.join(__dirname, 'settings.html'));
+    attachModuleShortcuts(settingsView.webContents);
+  }
+  return toolTab('settings', settingsView, 'Configuración', 'metatron://config');
+}
+
+function openSettingsTab() {
+  if (!mainWindow || mainWindow.isDestroyed()) return null;
+  const existing = tabs.find(t => t.kind === 'tool' && t.tool === 'settings');
+  if (existing) return activateTab(existing.id);
+  const tab = createSettingsTab();
   activateTab(tab.id);
   return tab;
 }
@@ -1541,6 +1783,9 @@ function createMain() {
     const wait = Math.max(0, SPLASH_MIN_MS - (Date.now() - started));
     setTimeout(reveal, wait);
     pushTabsState();
+    pushPagesState();
+    // El cajón arranca según la configuración guardada.
+    toggleDrawer(appConfig.drawerOnStart);
   });
 
   setTimeout(reveal, SPLASH_MIN_MS + 10000);
@@ -1550,6 +1795,8 @@ function createMain() {
     tabs = [];
     activeTabId = null;
     notesView = null;
+    historyView = null;
+    settingsView = null;
     mainWindow = null;
     if (splashWindow && !splashWindow.isDestroyed()) splashWindow.close();
   });
@@ -1564,9 +1811,10 @@ app.whenReady().then(async () => {
   createMain();
   startNewsFeed();
 
-  // El navegador arranca con la página de inicio (estalingradocorp.com.ar),
-  // o recuperando las pestañas que quedaron abiertas la última vez.
-  if (!restoreSession()) openHomePage();
+  // El navegador arranca con la página de inicio (o con las pestañas de la
+  // última sesión, si está configurado así).
+  applyConfig(appConfig, false);
+  if (appConfig.openOnStart !== 'session' || !restoreSession()) openHomePage();
   setInterval(saveSession, 15000);
 
   ipcMain.on('navigate', (event, index) => {
@@ -1637,6 +1885,54 @@ app.whenReady().then(async () => {
   ipcMain.on('open-notes', () => openNotes());
 
   ipcMain.handle('app:capture', () => takeScreenshot());
+
+  // ── Historial ──────────────────────────────────────────────────────────────
+  ipcMain.handle('history:get', (event, filtro) => {
+    const q = String(filtro || '').trim().toLowerCase();
+    const list = readHistory();
+    if (!q) return list.slice(0, 500);
+    return list.filter(h =>
+      h.url.toLowerCase().includes(q) || String(h.title || '').toLowerCase().includes(q)
+    ).slice(0, 500);
+  });
+
+  ipcMain.handle('history:remove', (event, id) => removeHistoryEntry(id));
+
+  ipcMain.handle('history:clear', () => clearHistory());
+
+  ipcMain.on('history:open', (event, payload) => {
+    const url = typeof payload === 'string' ? payload : payload && payload.url;
+    const nueva = typeof payload === 'object' && payload && payload.nueva === true;
+    const target = normalizeWebUrl(url);
+    if (!target) { toastToLauncher('Dirección inválida'); return; }
+    if (nueva) openWebTab(target);
+    else navigateToUrl(target);
+  });
+
+  // ── Configuración ──────────────────────────────────────────────────────────
+  ipcMain.handle('settings:get', () => appConfig);
+
+  ipcMain.handle('settings:set', (event, patch) => setConfig(patch));
+
+  ipcMain.on('settings:open', () => openSettingsTab());
+
+  ipcMain.on('open-history', () => openHistoryTab());
+
+  // Cierra la pestaña de herramienta activa (la usa el pie de historial/config).
+  ipcMain.on('tool:close', () => {
+    const tab = activeTab();
+    if (tab && tab.kind === 'tool') closeTab(tab.id);
+    else if (activeTabId) closeTab(activeTabId);
+  });
+
+  // Abre la carpeta de datos de METATRON (notas, historial, configuración…).
+  ipcMain.on('open-data-dir', () => {
+    try {
+      ensureNotesDir();
+      fs.mkdirSync(dataDir(), { recursive: true });
+      shell.openPath(dataDir());
+    } catch (e) {}
+  });
 
   ipcMain.on('tabs:open-url', (event, url) => { openWebTab(url); });
 

@@ -49,6 +49,8 @@ contextBridge.exposeInMainWorld('metatron', {
 
   // Herramientas
   openNotes: () => ipcRenderer.send('open-notes'),
+  openHistory: () => ipcRenderer.send('open-history'),
+  openSettings: () => ipcRenderer.send('settings:open'),
   capture: () => ipcRenderer.invoke('app:capture'),
   setChromeHeight: (h) => ipcRenderer.send('chrome:height', h),
   setEncryption: (on) => ipcRenderer.send('encrypt:set', on),

@@ -275,6 +275,66 @@ Verificaciones (build empaquetado, dist\win-unpacked\METATRON.exe, via CDP):
   - Mismos pasos OK: arranque con 1 pestaña, + x2 -> 3, Ctrl+T -> 4, cerrar/reabrir,
     Ctrl+clic en segundo plano, URL completa y favicons reales
 
+26/11/2026 - HISTORIAL DE NAVEGACION + CONFIGURACION GUARDADA
+-------------------------------------------------------------
+Pedido del usuario: "dado que nuestro proyecto ya es un navegador podemos agregarle un gestor
+de historial? y que las configuraciones se guarden".
+
+Historial (main.js + history.html + history-preload.js):
+  - historial.json en %APPDATA%\METATRON (escritura atomica .tmp + rename, maximo 3000
+    visitas); addHistoryEntry(url, titulo, fav) se llama en did-navigate de cada pestana
+    (solo cargas de pagina: no ensucia con anclas ni recargas) y no duplica la visita
+    anterior a la misma URL dentro de 30 s
+  - refreshHistoryTitle(): cuando el titulo real llega tarde se completa el guardado
+  - IPC: history:get (con filtro por titulo/URL), history:remove, history:clear,
+    history:open ({url, nueva}); open-history abre la pestana
+  - Pestana de herramienta kind:'tool', tool:'history' (igual que el anotador): lista
+    agrupada por dia (HOY / AYER / fecha), favicon + titulo + dominio + hora, buscador
+    (Ctrl+F), clic abre en la pestana actual, boton + o clic medio abre en nueva, x borra
+    la visita, VACIAR borra todo
+  - Acceso: boton HISTORIAL en el pie de home.html, menu Herramientas o Ctrl+Shift+H
+
+Configuracion (main.js + settings.html + settings-preload.js):
+  - config.json en %APPDATA%\METATRON (escritura atomica), CONFIG_DEFAULTS +
+    readConfig/sanitizeConfig/writeConfig/setConfig/applyConfig
+  - Opciones: homePage (pagina de inicio), openOnStart ('home' | 'session'),
+    drawerOnStart (cajon abierto/cerrado al arrancar), historyEnabled, notifications
+  - Al cambiar homePage se actualizan las pestanas que la tenian abierta (loadURL) y la
+    primera tarjeta del cajon OSINT; Ctrl+H usa la nueva portada
+  - openOnStart='session' hace que al arrancar se recuperen las pestanas (restoreSession),
+    con la home garantizada; drawerOnStart se envia al renderer al terminar de cargar y al
+    guardar; notifications apaga el aviso de la captura
+  - Pestana de herramienta tool:'settings': formulario con switches, radios, aviso de
+    guardado, valores por defecto, rutas de datos y boton ABRIR CARPETA
+  - Acceso: boton CONFIG en el pie, menu Herramientas o Ctrl+,
+  - IPC: settings:get, settings:set, settings:open, tool:close (cierra la pestana de
+    herramienta activa), open-data-dir
+
+Barra principal (home.html):
+  - Pie con dos botones nuevos: HISTORIAL y CONFIG (estilo terminal, casi transparentes)
+  - La barra de direcciones muestra metatron://historial y metatron://config segun la
+    herramienta abierta
+
+package.json: history.html, history-preload.js, settings.html y settings-preload.js
+agregados a build.files (eran necesarios: sin ellos las pestanas daban chrome-error).
+
+Verificaciones (desarrollo, via CDP):
+  - Navegar a wikipedia/github genera 4 visitas en historial.json con titulos reales
+  - Pestana Historial: lista render, grupos HOY, buscador filtra (4 -> 3), abrir una
+    visita en pestana nueva
+  - Configurar home=example.com guarda en disco, el cajon la refleja y Ctrl+H la abre;
+    volver a la portada original la restaura
+  - Persistencia entre reinicios: con openOnStart=session y drawerOnStart=true, al
+    reabrir se recuperan las pestanas y el cajon arranca abierto
+  - Instalador regenerado con npm run dist: METATRON Setup 1.0.0.exe (79.103.030 bytes,
+    26/11/2026 21:16, SHA256 89EC6DB234A32D6DD53885B373E5E48D0A70169656C4198AFC87BED94F6EE6A3)
+
+Verificaciones (build empaquetado, dist\win-unpacked\METATRON.exe, via CDP):
+  - Historial: 4 visitas, lista, buscador (4 -> 3), abrir desde la lista
+  - Configuracion: lectura, guardado en disco, cajon que se abre, home nueva en el
+    cajon y Ctrl+H abre example.com
+  - Capturas reales: pestaña Historial y pestaña Configuración
+
 26/11/2026 - CAJON OSINT ARRANCA CERRADO
 ----------------------------------------
 Pedido del usuario: "que el menu OSINT venga cerrado".

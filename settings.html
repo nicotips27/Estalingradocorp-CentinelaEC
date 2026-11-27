@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>METATRON — Configuración</title>
+<style>
+  :root {
+    --bg:#07090c; --bg-2:#0d1014; --bg-3:#141920; --bg-4:#1b222b;
+    --line:#232a33; --line-2:#2f3946; --text:#d7dde5; --text-2:#8b98a8; --text-3:#5b6675;
+    --blue:#367bf0; --blue-2:#5b9bff; --green:#35d07f; --red:#ff4d4f; --cyan:#3fc9d4;
+    --mono:"JetBrains Mono","Fira Code","Cascadia Mono",Consolas,"DejaVu Sans Mono","Courier New",monospace;
+    --transition:140ms ease;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--bg);color:var(--text);font-family:var(--mono);font-size:12px;
+    display:flex;flex-direction:column;overflow:hidden;
+    background-image:
+      linear-gradient(rgba(54,123,240,.05) 1px,transparent 1px) 0 0/100% 28px,
+      linear-gradient(90deg,rgba(54,123,240,.05) 1px,transparent 1px) 0 0/28px 100%;
+  }
+  button,input{font-family:inherit}
+  ::selection{background:rgba(54,123,240,.35);color:#fff}
+
+  header{
+    flex:none;display:flex;align-items:center;gap:10px;padding:10px 14px;
+    border-bottom:1px solid var(--line);background:linear-gradient(180deg,#0f1318,#0a0d11);
+  }
+  header .tag{color:var(--cyan);font-size:12px;letter-spacing:.24em}
+  header .sub{color:var(--text-3);font-size:10px}
+  header .sp{flex:1}
+  .btn{
+    height:26px;padding:0 12px;flex:none;cursor:pointer;background:var(--bg-2);
+    border:1px solid var(--line);color:var(--text-2);font-size:10px;letter-spacing:.1em;
+    transition:var(--transition);
+  }
+  .btn:hover{border-color:var(--blue);color:var(--blue-2);background:var(--bg-4)}
+  .btn.ok{border-color:var(--blue);color:var(--blue-2)}
+  .btn.ok:hover{background:var(--blue);color:#fff;border-color:var(--blue)}
+
+  main{flex:1;min-height:0;overflow-y:auto;padding:14px 16px 20px}
+  main::-webkit-scrollbar{width:9px}
+  main::-webkit-scrollbar-track{background:var(--bg)}
+  main::-webkit-scrollbar-thumb{background:var(--line-2);border:2px solid var(--bg)}
+
+  .bloque{margin-bottom:16px;padding:12px 14px;background:var(--bg-2);border:1px solid var(--line)}
+  .bloque h2{font-size:10px;letter-spacing:.2em;color:var(--cyan);font-weight:600;margin-bottom:10px}
+
+  .fila{display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid var(--line)}
+  .fila:first-of-type{border-top:none}
+  .fila .etiqueta{flex:1;min-width:0}
+  .fila .etiqueta b{display:block;font-size:11px;font-weight:500;color:var(--text)}
+  .fila .etiqueta span{display:block;font-size:9.5px;color:var(--text-3);margin-top:1px}
+  .fila .ctrl{flex:none;display:flex;align-items:center;gap:8px}
+
+  input[type=text]{
+    height:26px;width:320px;padding:0 8px;background:var(--bg);border:1px solid var(--line);
+    color:var(--text);font-size:11px;outline:none;
+  }
+  input[type=text]:focus{border-color:var(--blue);box-shadow:0 0 0 1px rgba(54,123,240,.2)}
+
+  .radio{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:10.5px;color:var(--text-2)}
+  .radio input{accent-color:var(--blue)}
+  .radio:hover{color:var(--text)}
+
+  .switch{
+    position:relative;width:34px;height:18px;border-radius:99px;cursor:pointer;
+    background:rgba(120,130,145,.28);border:1px solid var(--line-2);transition:var(--transition);
+  }
+  .switch::after{
+    content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;
+    background:#8a95a3;transition:left var(--transition),background var(--transition);
+  }
+  .switch.on{background:rgba(54,123,240,.45);border-color:var(--blue)}
+  .switch.on::after{left:17px;background:var(--blue-2)}
+
+  .rutas{font-size:10px;color:var(--text-3);line-height:1.7;word-break:break-all}
+  .rutas b{color:var(--text-2);font-weight:500}
+
+  .aviso{
+    margin-top:4px;font-size:10px;color:var(--green);min-height:14px;letter-spacing:.04em;
+  }
+  .aviso.error{color:var(--red)}
+
+  footer{
+    flex:none;display:flex;align-items:center;gap:12px;height:26px;padding:0 14px;
+    border-top:1px solid var(--line);background:var(--bg-2);
+    font-size:9.5px;color:var(--text-3);letter-spacing:.08em;
+  }
+  footer .prompt{color:var(--green)}
+  footer .prompt::after{content:"#";color:var(--blue-2)}
+  footer .sp{flex:1}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="tag">CONFIGURACIÓN</span>
+  <span class="sub">se guarda automáticamente en %APPDATA%\METATRON</span>
+  <span class="sp"></span>
+  <button class="btn" id="cerrar" title="Cerrar la pestaña">✕</button>
+</header>
+
+<main>
+  <div class="bloque">
+    <h2>INICIO</h2>
+    <div class="fila">
+      <div class="etiqueta">
+        <b>Página de inicio</b>
+        <span>la que abre el botón Inicio (Ctrl+H) y el cajón OSINT</span>
+      </div>
+      <div class="ctrl"><input type="text" id="home" spellcheck="false" autocomplete="off" placeholder="https://…"></div>
+    </div>
+    <div class="fila">
+      <div class="etiqueta">
+        <b>Al abrir METATRON</b>
+        <span>arrancar siempre con la portada o recuperar las pestañas de la sesión anterior</span>
+      </div>
+      <div class="ctrl">
+        <label class="radio"><input type="radio" name="inicio" value="home"> Portada</label>
+        <label class="radio"><input type="radio" name="inicio" value="session"> Restaurar pestañas</label>
+      </div>
+    </div>
+    <div class="fila">
+      <div class="etiqueta">
+        <b>Cajón OSINT al arrancar</b>
+        <span>si está apagado, la web arranca a pantalla completa y abrís el cajón con el botón OSINT</span>
+      </div>
+      <div class="ctrl"><div class="switch" id="drawer" title="Cajón abierto / cerrado al arrancar"></div></div>
+    </div>
+  </div>
+
+  <div class="bloque">
+    <h2>PRIVACIDAD Y AVISOS</h2>
+    <div class="fila">
+      <div class="etiqueta">
+        <b>Guardar historial de navegación</b>
+        <span>las visitas quedan en %APPDATA%\METATRON\historial.json y se ven en la pestaña Historial</span>
+      </div>
+      <div class="ctrl"><div class="switch" id="history" title="Guardar / no guardar el historial"></div></div>
+    </div>
+    <div class="fila">
+      <div class="etiqueta">
+        <b>Notificaciones del sistema</b>
+        <span>aviso al guardar una captura de pantalla</span>
+      </div>
+      <div class="ctrl"><div class="switch" id="notif" title="Notificaciones sí / no"></div></div>
+    </div>
+  </div>
+
+  <div class="bloque">
+    <h2>DATOS</h2>
+    <div class="rutas" id="rutas">cargando…</div>
+    <div class="fila">
+      <div class="etiqueta"><b>Abrir la carpeta de datos</b><span>notas, historial, páginas del cajón y configuración</span></div>
+      <div class="ctrl"><button class="btn" id="abrir">ABRIR CARPETA</button></div>
+    </div>
+  </div>
+
+  <div class="fila" style="border:none;gap:10px">
+    <button class="btn ok" id="guardar">GUARDAR</button>
+    <button class="btn" id="defecto">VALORES POR DEFECTO</button>
+    <span class="sp" style="flex:1"></span>
+    <span class="aviso" id="aviso"></span>
+  </div>
+</main>
+
+<footer>
+  <span class="prompt">root@metatron:</span>
+  <span>~/config</span>
+  <span class="sp"></span>
+  <span>los cambios se aplican al guardar</span>
+</footer>
+
+<script>
+const DEFECTO = {
+  homePage: 'https://estalingradocorp.com.ar/',
+  openOnStart: 'home',
+  drawerOnStart: false,
+  historyEnabled: true,
+  notifications: true
+};
+
+const homeInput = document.getElementById('home');
+const aviso = document.getElementById('aviso');
+const switches = {
+  drawer: document.getElementById('drawer'),
+  history: document.getElementById('history'),
+  notif: document.getElementById('notif')
+};
+
+function pintar(cfg) {
+  homeInput.value = cfg.homePage || '';
+  document.querySelector('input[name=inicio][value="' + (cfg.openOnStart || 'home') + '"]').checked = true;
+  switches.drawer.classList.toggle('on', !!cfg.drawerOnStart);
+  switches.history.classList.toggle('on', !!cfg.historyEnabled);
+  switches.notif.classList.toggle('on', !!cfg.notifications);
+}
+
+for (const el of Object.values(switches)) {
+  el.addEventListener('click', () => el.classList.toggle('on'));
+}
+
+async function decir(texto, error) {
+  aviso.textContent = texto;
+  aviso.classList.toggle('error', !!error);
+  if (!error) setTimeout(() => { aviso.textContent = ''; }, 2600);
+}
+
+document.getElementById('guardar').addEventListener('click', async () => {
+  const inicio = document.querySelector('input[name=inicio]:checked');
+  const patch = {
+    homePage: homeInput.value.trim(),
+    openOnStart: inicio ? inicio.value : 'home',
+    drawerOnStart: switches.drawer.classList.contains('on'),
+    historyEnabled: switches.history.classList.contains('on'),
+    notifications: switches.notif.classList.contains('on')
+  };
+  const res = await window.config.set(patch);
+  if (res && res.ok) { pintar(res.config); decir('configuración guardada'); }
+  else decir('no se pudo guardar', true);
+});
+
+document.getElementById('defecto').addEventListener('click', async () => {
+  const res = await window.config.set(DEFECTO);
+  if (res && res.ok) { pintar(res.config); decir('valores por defecto restaurados'); }
+  else decir('no se pudo guardar', true);
+});
+
+document.getElementById('abrir').addEventListener('click', () => window.config.abrirCarpeta());
+document.getElementById('cerrar').addEventListener('click', () => window.config.cerrar());
+
+(async () => {
+  const cfg = await window.config.get();
+  pintar(cfg);
+  const amp = String.fromCharCode(38);
+  document.getElementById('rutas').innerHTML =
+    '<b>Notas</b> · %APPDATA%' + amp + '\\METATRON\\notas\\anotador.json<br>' +
+    '<b>Historial</b> · %APPDATA%' + amp + '\\METATRON\\historial.json<br>' +
+    '<b>Cajón OSINT</b> · %APPDATA%' + amp + '\\METATRON\\paginas.json<br>' +
+    '<b>Sesión</b> · %APPDATA%' + amp + '\\METATRON\\sesion.json<br>' +
+    '<b>Configuración</b> · %APPDATA%' + amp + '\\METATRON\\config.json';
+})();
+</script>
+</body>
+</html>

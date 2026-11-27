@@ -320,6 +320,12 @@
   footer .prompt::after { content:"#"; color:var(--blue-2); }
   footer .spacer { flex:1; }
   footer .net-status { display:inline-flex; align-items:center; gap:6px; }
+  .foot-btn {
+    background:transparent; border:1px solid transparent; color:var(--text-3);
+    font-size:9px; letter-spacing:.14em; padding:3px 7px; cursor:pointer;
+    transition: var(--transition);
+  }
+  .foot-btn:hover { color:var(--blue-2); border-color:var(--line-2); background:var(--bg-3); }
 
   /* Aviso emergente */
   .toast {
@@ -439,6 +445,8 @@
   <span class="prompt">root@metatron:/opt/metatron</span>
   <span id="sysline">> iniciado</span>
   <span class="spacer"></span>
+  <button class="foot-btn" id="hist-btn" title="Historial de navegación (Ctrl+Shift+H)">HISTORIAL</button>
+  <button class="foot-btn" id="conf-btn" title="Configuración (Ctrl+,)">CONFIG</button>
   <span class="net-status"><span class="status-dot" id="footer-dot"></span> <span id="nettext">comprobando conexión…</span></span>
 </footer>
 
@@ -561,7 +569,8 @@ function renderAddressBar() {
   }
   if (tab.kind === 'tool') {
     urlPrefix.textContent = 'metatron://';
-    urlInput.value = 'notas';
+    urlInput.value = tab.tool === 'history' ? 'historial'
+      : (tab.tool === 'settings' ? 'config' : 'notas');
     urlInput.placeholder = '';
     urlFlag.textContent = 'LOCAL';
     urlFlag.style.color = 'var(--cyan)';
@@ -783,6 +792,8 @@ function toast(message) {
 
 /* ── Interacción ─────────────────────────────────────────────────────────── */
 document.getElementById('newtab').addEventListener('click', () => window.metatron.newTab());
+document.getElementById('hist-btn').addEventListener('click', () => window.metatron.openHistory());
+document.getElementById('conf-btn').addEventListener('click', () => window.metatron.openSettings());
 document.getElementById('notes-btn').addEventListener('click', () => window.metatron.openNotes());
 document.getElementById('capture-btn').addEventListener('click', () => window.metatron.capture());
 navBack.addEventListener('click', () => window.metatron.back());

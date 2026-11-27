@@ -10,9 +10,10 @@ App de escritorio para Windows que abre **nueve plataformas de monitoreo y datos
 2. [Capturas de pantalla](#capturas-de-pantalla)
 3. [Características](#características)
 4. [Navegador de pestañas](#navegador-de-pestañas)
-5. [Anotador: datos y copias de seguridad](#anotador-datos-y-copias-de-seguridad)
-6. [Plataformas](#plataformas)
-7. [Estructura del proyecto](#estructura-del-proyecto)
+5. [Historial y configuración](#historial-y-configuración)
+6. [Anotador: datos y copias de seguridad](#anotador-datos-y-copias-de-seguridad)
+7. [Plataformas](#plataformas)
+8. [Estructura del proyecto](#estructura-del-proyecto)
 8. [Requisitos](#requisitos)
 9. [Puesta en marcha (desarrollo)](#puesta-en-marcha-desarrollo)
 10. [Generar el instalador](#generar-el-instalador)
@@ -124,6 +125,8 @@ Todas las páginas viven dentro de **una sola ventana**, como un navegador propi
 | Ctrl+T | Nueva pestaña (abre la página de inicio) |
 | Ctrl+W | Cerrar pestaña activa |
 | Ctrl+Shift+T | Reabrir la última pestaña cerrada |
+| Ctrl+Shift+H | Historial de navegación |
+| Ctrl+, | Configuración |
 | Ctrl+Tab / Ctrl+Shift+Tab | Pestaña siguiente / anterior |
 | Ctrl+H | Página de inicio (`estalingradocorp.com.ar`) |
 | Ctrl+Shift+O | Abrir / cerrar el cajón OSINT |
@@ -143,6 +146,46 @@ Todas las páginas viven dentro de **una sola ventana**, como un navegador propi
 - Las noticias del teleprompter, los links del menú Ayuda y el botón "Visitar Estalingrado Corp" también abren **pestañas internas**.
 - El botón **×** de cada pestaña la cierra; en la pestaña del anotador se guarda el contenido antes de destruirla.
 - Protocolos que no son web (`mailto:`, `file:`, etc.) se bloquean con un aviso.
+
+---
+
+## Historial y configuración
+
+METATRON ya se comporta como un navegador completo: **guarda el historial** de todo lo que visitás y **guarda tus preferencias**.
+
+### Historial de navegación
+
+- Se registra **solo** cada carga de página (URL, título y favicon), sin ensuciar con anclas (`#`) ni recargas. Queda en `%APPDATA%\METATRON\historial.json` (máximo 3000 visitas; el título se completa cuando el sitio lo informa).
+- Se abre como **pestaña de herramienta**: botón **HISTORIAL** del pie, menú **Herramientas** o **Ctrl+Shift+H**.
+- La lista se agrupa por día (**HOY / AYER / fecha**) y muestra favicon, título, dominio y hora.
+- **Buscador** (Ctrl+F) por título o dirección; clic abre en la pestaña actual, el botón `+` o el clic medio la abre en una pestaña nueva, y la `×` borra esa visita. **VACIAR** borra todo el historial.
+- Se puede apagar desde Configuración (*Guardar historial de navegación*).
+
+### Configuración
+
+Se abre con el botón **CONFIG** del pie, el menú **Herramientas** o **Ctrl+,**, y se guarda en `%APPDATA%\METATRON\config.json`:
+
+| Opción | Qué hace |
+| --- | --- |
+| **Página de inicio** | La web que abre el botón Inicio (Ctrl+H) y la primera tarjeta del cajón OSINT. Al cambiarla, las pestañas que la tenían abierta se actualizan solas. |
+| **Al abrir METATRON** | Arrancar siempre con la portada o **restaurar las pestañas** de la sesión anterior. |
+| **Cajón OSINT al arrancar** | Abierto o cerrado (para que la web arranque a pantalla completa). |
+| **Guardar historial** | Activa o desactiva el registro de visitas. |
+| **Notificaciones del sistema** | El aviso al guardar una captura de pantalla. |
+
+Todo se aplica al tocar **GUARDAR** (o **VALORES POR DEFECTO** para volver al estado original).
+
+### Dónde vive cada cosa
+
+| Dato | Archivo |
+| --- | --- |
+| Notas del anotador | `%APPDATA%\METATRON\notas\anotador.json` (+ espejo `.txt` y `copias\`) |
+| Historial | `%APPDATA%\METATRON\historial.json` |
+| Webs del cajón OSINT | `%APPDATA%\METATRON\paginas.json` |
+| Pestañas de la sesión | `%APPDATA%\METATRON\sesion.json` |
+| Configuración | `%APPDATA%\METATRON\config.json` |
+
+Todo vive fuera de la carpeta que borra el desinstalador, así que **no se pierde al reinstalar** (ver [Anotador](#anotador-datos-y-copias-de-seguridad)).
 
 ---
 
@@ -425,3 +468,7 @@ El instalador es un **programa de uso interno** que no está firmado digitalment
 - **26/11/2026: el cajón OSINT arranca cerrado.**
   - La app abre con la home cargada y **el cajón cerrado**, para que la web arranque a pantalla completa; lo abrís con el botón **OSINT** o Ctrl+Shift+O.
   - Las tarjetas del cajón son **compactas, de una sola línea** (ícono + nombre + host + estado): con el cajón abierto la barra mide 209 px (antes 259) y la web gana 50 px de alto.
+- **26/11/2026: historial de navegación y configuración que se guarda.**
+  - **Gestor de historial** como pestaña de herramienta (botón **HISTORIAL** del pie, menú **Herramientas** o Ctrl+Shift+H): visitas agrupadas por día (HOY / AYER / fecha) con favicon, título, dominio y hora; **buscador** (Ctrl+F) por título o dirección; clic abre en la pestaña actual, `+` o clic medio en una pestaña nueva, `×` borra una visita y **VACIAR** borra todo. Se guarda en `%APPDATA%\METATRON\historial.json` (hasta 3000 visitas) y se puede desactivar.
+  - **Configuración** como pestaña de herramienta (botón **CONFIG** del pie, menú **Herramientas** o Ctrl+,) guardada en `%APPDATA%\METATRON\config.json`: **página de inicio** configurable (las pestañas que la tenían abierta se actualizan solas), **al abrir** (portada o restaurar las pestañas de la sesión anterior), **cajón OSINT al arrancar** (abierto o cerrado), **guardar historial** y **notificaciones del sistema**.
+  - Las notas, el historial, las webs del cajón, la sesión y la configuración viven todos en `%APPDATA%\METATRON\`, fuera de lo que borra el desinstalador.
